@@ -4,6 +4,7 @@ import { formatSimTime } from '../app/format';
 import type { RunStats } from '../app/runStats';
 import type { GenerationRecord, Ghost } from '../simulation/experiment';
 import { GHOST_MODE_LABEL, type GhostMode } from '../visualization/ghost';
+import { RENDER_STYLE_LABEL, type RenderStyle } from '../visualization/style';
 import { END_REASON_LABEL } from '../simulation/types';
 import { MarkLegend } from './MarkLegend';
 import { Section } from './Panel';
@@ -18,13 +19,16 @@ interface Props {
   ghostGeneration: number | null;
   /** 고스트를 지금 화면에 그리는 중인가 (부모 선택 중에는 숨김) */
   showGhost: boolean;
+  renderStyle: RenderStyle;
+  onRenderStyleChange(style: RenderStyle): void;
   onGhostChange(mode: GhostMode, generation: number | null): void;
 }
 
 const pct = (v: number | undefined) => (v === undefined ? '-' : `${(v * 100).toFixed(1)}%`);
 const diff = (d: number) => `${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}%p`;
 
-export function RightPanel({ generation, stats, history, auto, ghost, ghostMode, ghostGeneration, showGhost, onGhostChange }: Props) {
+export function RightPanel(props: Props) {
+  const { generation, stats, history, auto, ghost, ghostMode, ghostGeneration, showGhost, onGhostChange } = props;
   const [metric, setMetric] = useState<'progress' | 'fitness'>('progress');
   const counts = stats?.counts;
   const count = (v: number | undefined) => (v === undefined ? '-' : `${v}대`);
@@ -67,6 +71,19 @@ export function RightPanel({ generation, stats, history, auto, ghost, ghostMode,
       </Section>
 
       <Section title="표시">
+        <div className="segmented small" role="group" aria-label="화면 스타일">
+          {(Object.keys(RENDER_STYLE_LABEL) as RenderStyle[]).map((style) => (
+            <button
+              key={style}
+              type="button"
+              aria-pressed={props.renderStyle === style}
+              className={props.renderStyle === style ? 'active' : undefined}
+              onClick={() => props.onRenderStyleChange(style)}
+            >
+              {RENDER_STYLE_LABEL[style]}
+            </button>
+          ))}
+        </div>
         <MarkLegend ghost={!!ghost && showGhost} />
       </Section>
 

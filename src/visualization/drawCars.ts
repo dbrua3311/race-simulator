@@ -21,24 +21,21 @@ export interface DrawOptions {
   selection: readonly number[];
   /** 애니메이션 시간 (ms) */
   time: number;
+  /** 픽셀아트로 그린다 (낮은 해상도 캔버스) */
+  pixel?: boolean;
+  /** 번호를 같이 그린다 (픽셀아트에서는 원래 해상도로 따로 그린다) */
+  labels?: boolean;
 }
 
 export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view: Viewport, options: DrawOptions) {
-  const n = snapshot.ids.length;
   const selected = new Set(options.selection);
   const champion = snapshot.championIndex;
-  // 그리는 순서: 종료된 차 → 달리는 차 → 선택된 차 → 챔피언 (나중 것이 위)
-  const priority = (i: number) => {
-    if (i === champion) return 3;
-    if (selected.has(snapshot.ids[i]!)) return 2;
-    return snapshot.data[i * CAR_STRIDE + 4]! === 0 ? 1 : 0;
-  };
-  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => priority(a) - priority(b));
+  const order = carOrder(snapshot, options);
 
   // 금색 오라는 모든 차체 아래에 깐다
   if (champion >= 0) {
     const o = champion * CAR_STRIDE;
-    drawGoldAura(ctx, view, snapshot.data[o]!, snapshot.data[o + 1]!, snapshot.data[o + 2]!, options.time, snapshot.data[o + 4]! === 0);
+    drawGoldAura(ctx, view, snapshot.data[o]!, snapshot.data[o + 1]!, snapshot.data[o + 2]!, options.time, snapshot.data[o + 4]! === 0, options.pixel);
   }
 
   for (const i of order) {
@@ -51,15 +48,35 @@ export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view
       endReason: END_CODES[snapshot.data[o + 4]!] ?? null,
       champion: i === champion,
       selected: selected.has(snapshot.ids[i]!),
-    });
+    }, options.pixel ?? false);
   }
-  // 번호는 차체를 모두 그린 뒤, 위에 있는 차부터 겹치지 않는 것만 그린다
+  if (options.labels !== false) drawCarLabels(ctx, snapshot, view, options);
+}
+
+/** 그리는 순서: 종료된 차 → 달리는 차 → 선택된 차 → 챔피언 (나중 것이 위) */
+function carOrder(snapshot: Snapshot, options: DrawOptions): number[] {
+  const selected = new Set(options.selection);
+  return Array.from({ length: snapshot.ids.length }, (_, i) => i).sort(
+    (a, b) => labelPriority(snapshot, selected, a) - labelPriority(snapshot, selected, b),
+  );
+}
+
+function labelPriority(snapshot: Snapshot, selected: Set<number>, i: number) {
+  if (i === snapshot.championIndex) return 3;
+  if (selected.has(snapshot.ids[i]!)) return 2;
+  return snapshot.data[i * CAR_STRIDE + 4]! === 0 ? 1 : 0;
+}
+
+/** 번호: 차체를 모두 그린 뒤, 위에 있는 차부터 겹치지 않는 것만 그린다 */
+export function drawCarLabels(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view: Viewport, options: DrawOptions) {
+  const selected = new Set(options.selection);
+  const order = carOrder(snapshot, options);
   const placed: Rect[] = [];
   for (let k = order.length - 1; k >= 0; k--) {
     const i = order[k]!;
     const o = i * CAR_STRIDE;
     const p = worldToScreen(view, { x: snapshot.data[o]!, y: snapshot.data[o + 1]! });
-    const force = priority(i) >= 2;
+    const force = labelPriority(snapshot, selected, i) >= 2;
     drawLabel(ctx, view, snapshot.ids[i]!, p.x, p.y, snapshot.data[o + 4]! !== 0, placed, force);
   }
 }
@@ -113,7 +130,8 @@ interface CarDraw {
 }
 
 /** 차체와 종료 표시 (번호는 drawLabel) */
-function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw) {
+function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw, pixel: boolean) {
+  if (pixel) return drawPixelCar(ctx, view, car);
   const p = worldToScreen(view, car);
   const len = CAR.length * view.scale;
   const wid = CAR.width * view.scale;
@@ -144,6 +162,44 @@ function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw) {
   ctx.restore();
 
   drawEndMark(ctx, p.x, p.y, Math.max(3, wid * 0.6), car.endReason);
+}
+
+/** 도트 자동차: 각진 차체 + 바퀴 4개 + 앞유리 + 지붕 하이라이트 */
+function drawPixelCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw) {
+  const p = worldToScreen(view, car);
+  const len = Math.max(6, Math.round(CAR.length * view.scale));
+  const wid = Math.max(3, Math.round(CAR.width * view.scale));
+  const body = car.champion ? GOLD : carColor(car.id);
+
+  ctx.save();
+  ctx.translate(Math.round(p.x), Math.round(p.y));
+  ctx.rotate(-car.heading);
+  if (car.selected) {
+    ctx.strokeStyle = SELECT_COLOR;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-len / 2 - 2, -wid / 2 - 2, len + 4, wid + 4);
+  }
+  ctx.globalAlpha = car.endReason && !car.champion && !car.selected ? 0.55 : 1;
+  // 바퀴
+  ctx.fillStyle = '#15171c';
+  const wl = Math.max(1, Math.round(len * 0.2));
+  for (const fx of [-len * 0.32, len * 0.18]) {
+    ctx.fillRect(fx, -wid / 2 - 1, wl, 1);
+    ctx.fillRect(fx, wid / 2, wl, 1);
+  }
+  // 차체 + 테두리
+  ctx.fillStyle = '#101218';
+  ctx.fillRect(-len / 2, -wid / 2, len, wid);
+  ctx.fillStyle = body;
+  ctx.fillRect(-len / 2 + 0.5, -wid / 2 + 0.5, len - 1, wid - 1);
+  // 지붕 하이라이트와 앞유리 (진행 방향 쪽)
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.fillRect(-len * 0.25, -wid / 2 + 0.5, len * 0.3, 1);
+  ctx.fillStyle = '#1b2a3c';
+  ctx.fillRect(len * 0.1, -wid / 2 + 1, Math.max(1, len * 0.18), wid - 2);
+  ctx.restore();
+
+  drawEndMark(ctx, Math.round(p.x), Math.round(p.y), Math.max(2, wid * 0.6), car.endReason);
 }
 
 /** 종료 사유 표시: 벽 충돌 ✕(빨강), 브레이크 정지 ■(주황), 완주 ✓(초록), 안전 종료 ○(회색) */

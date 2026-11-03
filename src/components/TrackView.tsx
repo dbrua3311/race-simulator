@@ -4,8 +4,10 @@ import { DT } from '../simulation/params';
 import { END_REASON_LABEL } from '../simulation/types';
 import { DIFFICULTY_LABEL, type GridSlot, type Track } from '../tracks/types';
 import { CAR_STRIDE, END_CODES, type Snapshot } from '../workers/protocol';
-import { drawCars } from '../visualization/drawCars';
-import { clear, drawMessage, drawTrack } from '../visualization/renderer';
+import { drawCarLabels, drawCars } from '../visualization/drawCars';
+import { clearPixel } from '../visualization/pixelTrack';
+import { clear, drawMessage, drawTrack, drawTrackLabels } from '../visualization/renderer';
+import { PIXEL_FACTOR, type RenderStyle } from '../visualization/style';
 import { MIN_HIT_RADIUS, carScreenPositions, carsInRect, hitTest } from '../visualization/selection';
 import { drawGhostCar } from '../visualization/effects';
 import { ghostPose } from '../visualization/ghost';
@@ -37,6 +39,8 @@ interface Props {
   /** 비교용 고스트 (없으면 null) */
   ghost: Ghost | null;
   showGhost: boolean;
+  /** 픽셀아트 / 기본 */
+  renderStyle: RenderStyle;
 }
 
 interface Hover {
@@ -46,7 +50,7 @@ interface Hover {
 }
 
 export function TrackView(props: Props) {
-  const { track, slots, error, getSnapshot, generation, countdown, bestFinish, runFinished, selecting, selection } = props;
+  const { track, slots, error, getSnapshot, generation, countdown, bestFinish, runFinished, selecting, selection, renderStyle } = props;
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
@@ -92,17 +96,34 @@ export function TrackView(props: Props) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // 픽셀아트: 낮은 해상도 캔버스(배경·차·효과)에 그린 뒤 보간 없이 키운다. 글씨는 원래 해상도로
+    const pixel = renderStyle === 'pixel';
+    const factor = pixel ? PIXEL_FACTOR : 1;
+    const low = document.createElement('canvas');
+    low.width = pixel ? Math.ceil(size.width / factor) : canvas.width;
+    low.height = pixel ? Math.ceil(size.height / factor) : canvas.height;
+    const lowCtx = low.getContext('2d');
     const background = document.createElement('canvas');
-    background.width = canvas.width;
-    background.height = canvas.height;
+    background.width = low.width;
+    background.height = low.height;
     const bg = background.getContext('2d');
+    if (!lowCtx || !bg) return;
     let view: Viewport | null = null;
-    if (bg) {
-      clear(bg, size.width, size.height, dpr);
-      if (track) {
-        view = fitViewport(track.bounds, size.width, size.height, PADDING);
-        drawTrack(bg, track, view, slots);
-      } else drawMessage(bg, size.width, size.height, error ?? '트랙이 없습니다');
+    let lowView: Viewport | null = null;
+    // 저해상도 그림의 좌표계: 픽셀아트면 1/factor 배율, 기본이면 dpr 배율
+    const lowScale = pixel ? 1 : dpr;
+    if (pixel) clearPixel(bg, low.width, low.height);
+    else clear(bg, size.width, size.height, dpr);
+    if (track) {
+      view = fitViewport(track.bounds, size.width, size.height, PADDING);
+      lowView = pixel ? { scale: view.scale / factor, offsetX: view.offsetX / factor, offsetY: view.offsetY / factor } : view;
+      bg.setTransform(lowScale, 0, 0, lowScale, 0, 0);
+      drawTrack(bg, track, lowView, slots, renderStyle);
+    } else {
+      bg.setTransform(1, 0, 0, 1, 0, 0);
+      if (pixel) bg.scale(1 / factor, 1 / factor);
+      else bg.scale(dpr, dpr);
+      drawMessage(bg, size.width, size.height, error ?? '트랙이 없습니다');
     }
     viewRef.current = view;
     // 개발 모드 전용: 브라우저 테스트가 자동차의 화면 위치를 알 수 있게 한다
@@ -119,17 +140,26 @@ export function TrackView(props: Props) {
     const render = (time: number) => {
       frame = requestAnimationFrame(render);
       const snapshot = getSnapshot();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.drawImage(background, 0, 0);
-      if (snapshot && view) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      lowCtx.setTransform(1, 0, 0, 1, 0, 0);
+      lowCtx.drawImage(background, 0, 0);
+      const options = { selection: selectionRef.current, time, pixel, labels: false };
+      if (snapshot && lowView) {
+        lowCtx.setTransform(lowScale, 0, 0, lowScale, 0, 0);
         // 고스트는 실제 차들 아래에, 같은 시뮬레이션 시간으로 재생한다
         const { ghost, show } = ghostRef.current;
         if (ghost && show) {
           const pose = ghostPose(ghost.samples, snapshot.tick * DT);
-          if (pose) drawGhostCar(ctx, view, pose.x, pose.y, pose.heading, pose.done);
+          if (pose) drawGhostCar(lowCtx, lowView, pose.x, pose.y, pose.heading, pose.done);
         }
-        drawCars(ctx, snapshot, view, { selection: selectionRef.current, time });
+        drawCars(lowCtx, snapshot, lowView, options);
+      }
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.imageSmoothingEnabled = !pixel;
+      ctx.drawImage(low, 0, 0, low.width, low.height, 0, 0, pixel ? low.width * factor * dpr : canvas.width, pixel ? low.height * factor * dpr : canvas.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (track && view) drawTrackLabels(ctx, track, view, slots);
+      if (snapshot && view) {
+        drawCarLabels(ctx, snapshot, view, options);
         const drag = dragRef.current;
         if (drag?.dragging) drawDragRect(ctx, drag.start, drag.current);
       }
@@ -141,7 +171,7 @@ export function TrackView(props: Props) {
     };
     frame = requestAnimationFrame(render);
     return () => cancelAnimationFrame(frame);
-  }, [track, slots, size, error, getSnapshot]);
+  }, [track, slots, size, error, getSnapshot, renderStyle]);
 
   const pointerPos = (e: PointerEvent<HTMLCanvasElement>): Vec => {
     const rect = e.currentTarget.getBoundingClientRect();
