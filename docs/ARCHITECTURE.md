@@ -164,10 +164,10 @@ persistence/  JSON 저장·복원(검증 후 교체), CSV 내보내기 — 코�
 - 재생은 현재 시뮬 시간에 맞춰 보간. 물리·센서·적합도와 완전히 분리된 읽기 전용 데이터.
 - 대상: 직전 세대 1등 / 역대 최고(기본) / 특정 세대 1등.
 
-## 10. 저장 (`src/persistence`)
+## 10. 저장 (`src/persistence`) — 구현됨 (8단계)
 
-- 저장 파일 = `{ formatVersion, name, savedAt, track(좌표 포함), gaConfig, generation, population(유전자·주행상태·결과),
-  phase, selection, history(세대별 통계·부모 기록), ghosts, rngState }`.
+- 저장 파일 = `{ format, formatVersion, name, savedAt, savedPoint, experiment(트랙 좌표·설정·세대·현재 세대 전체 상태·유전자·기록·고스트·난수 상태), ui.selection }`.
+- 차 상태·유전자·난수는 원래 정밀도 그대로 (이어서 계산하면 저장 안 한 것과 같은 결과), 궤적·고스트만 소수 셋째 자리로 줄인다.
 - 코어 상태가 평범한 데이터이므로 **주행 도중 상태도** 그대로 저장할 수 있다. 저장 시점(세대 경계/주행 중/부모 선택 중)을 파일과 화면에 표시한다.
 - 불러오기: 파싱 → 스키마 검증 → 새 상태 객체 구성이 모두 성공한 뒤에만 현재 상태를 교체. 실패하면 현재 실험은 그대로 두고 한국어 오류 메시지 (요구 60).
 - 부모 선택 중 저장 → 불러오면 `parentSelection` + 선택 목록 복원, 자동으로 다음 세대로 넘어가지 않음 (요구 47).

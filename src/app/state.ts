@@ -57,8 +57,15 @@ export interface AppState {
   ghosts: Ghost[];
   /** 학습 초기화할 때마다 늘려 실험 시드를 바꾼다 */
   runNumber: number;
-  /** 사용자에게 보여 줄 알림 (오류 등) */
-  message: string | null;
+  /** 사용자에게 보여 줄 알림 */
+  message: Notice | null;
+  /** 저장 파일에 들어갈 실험 이름 */
+  experimentName: string;
+}
+
+export interface Notice {
+  text: string;
+  kind: 'info' | 'error';
 }
 
 export type Action =
@@ -84,8 +91,10 @@ export type Action =
       history: GenerationRecord[];
       ghosts: Ghost[];
       selection: number[];
+      name: string;
     }
-  | { type: 'message'; message: string | null }
+  | { type: 'message'; message: Notice | null }
+  | { type: 'setName'; name: string }
   | { type: 'newGame' };
 
 export function initialState(seed: string, difficulty: Difficulty = 'medium'): AppState {
@@ -109,6 +118,7 @@ export function initialState(seed: string, difficulty: Difficulty = 'medium'): A
       ghosts: [],
       runNumber: 1,
       message: null,
+      experimentName: '',
     },
     difficulty,
     seed,
@@ -210,6 +220,7 @@ export function reducer(state: AppState, action: Action): AppState {
         history: action.history,
         ghosts: action.ghosts,
         selection: action.selection,
+        experimentName: action.name,
         countdown: 0,
         auto: false,
         skipping: false,
@@ -218,6 +229,8 @@ export function reducer(state: AppState, action: Action): AppState {
       };
     case 'message':
       return { ...state, message: action.message };
+    case 'setName':
+      return { ...state, experimentName: action.name };
     case 'newGame':
       return {
         ...state,

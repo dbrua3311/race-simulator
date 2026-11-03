@@ -430,13 +430,23 @@ select:disabled {
   top: 56px;
   left: 50%;
   z-index: 10;
+  max-width: 70vw;
   transform: translateX(-50%);
   padding: 8px 16px;
-  border: 1px solid rgba(239, 107, 107, 0.5);
   border-radius: 8px;
+  font-size: 13px;
+}
+
+.toast-error {
+  border: 1px solid rgba(239, 107, 107, 0.5);
   background: #2a1517;
   color: #ffd6d6;
-  font-size: 13px;
+}
+
+.toast-info {
+  border: 1px solid rgba(74, 210, 149, 0.45);
+  background: #12261e;
+  color: #d4f7e6;
 }
 
 .track-canvas canvas.selecting {
