@@ -30,5 +30,7 @@
 ## 환경
 
 - Ubuntu, Node.js 26 (nvm: `export NVM_DIR=/mnt/extra/tools/nvm && . $NVM_DIR/nvm.sh`)
-- 홈 디스크 여유가 적다. npm 캐시는 `/mnt/extra/tools/npm-cache`, Playwright 브라우저는 `PLAYWRIGHT_BROWSERS_PATH=/mnt/extra/tools/ms-playwright`
+- 홈 디스크 여유가 적다. **다운로드해서 용량을 쓰는 것은 꼭 필요한 경우가 아니면 USB(`/mnt/piper-usb/dev-cache`)에 둔다.** USB 가 안 되면 `/mnt/extra`
+- npm 캐시 `/mnt/piper-usb/dev-cache/npm-cache`, Playwright 브라우저 `PLAYWRIGHT_BROWSERS_PATH=/mnt/piper-usb/dev-cache/ms-playwright`
+- Node(nvm) 는 USB 를 뽑아도 개발할 수 있도록 `/mnt/extra/tools/nvm` 에 둔다
 - 단위 테스트는 `tests/`, 브라우저 테스트는 `e2e/`

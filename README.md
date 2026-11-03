@@ -27,7 +27,7 @@ npm run typecheck  # 타입 검사
 npm run build      # 배포용 빌드
 ```
 
-브라우저 테스트 (Playwright, 처음 한 번 `npx playwright install chromium` 필요):
+브라우저 테스트 (Playwright, 처음 한 번 `npx playwright install chromium` 필요. 브라우저 설치 위치는 `PLAYWRIGHT_BROWSERS_PATH` 로 지정):
 
 ```bash
 npm run test:e2e   # 개발 서버를 자동으로 띄우고 e2e/ 테스트 실행

@@ -70,6 +70,6 @@
 
 ## D13. 개발 환경 — 확정
 - 프로젝트 위치 `/mnt/extra/race-simulator`, GitHub `dbrua3311/race-simulator` (public)
-- 홈 디스크(`/`) 여유가 적어 Node·npm 캐시·Playwright 브라우저는 `/mnt/extra` 쪽에 둔다.
-- Node v26.13.0 / npm 11.20.0 (nvm, `/mnt/extra/tools/nvm`), npm 캐시 `/mnt/extra/tools/npm-cache`
+- 홈 디스크(`/`) 여유가 적다. 다운로드성 데이터는 USB `/mnt/piper-usb/dev-cache` 우선, 안 되면 `/mnt/extra` (2026-11-04, 사용자)
+- Node v26.13.0 / npm 11.20.0 (nvm, `/mnt/extra/tools/nvm`), npm 캐시 `/mnt/piper-usb/dev-cache/npm-cache`, Playwright 브라우저 `/mnt/piper-usb/dev-cache/ms-playwright`
 - Python 은 사용하지 않는다 (원문 기술 스택이 TypeScript 전용).
