@@ -23,4 +23,4 @@ export const CAR = {
 export const DRAG = CAR.maxAccel / (CAR.maxSpeed * CAR.maxSpeed);
 
 /** 안전 종료: 한 세대의 최대 시뮬레이션 시간 (s) */
-export const MAX_RUN_TIME = 240;
+export const MAX_RUN_TIME = 300;
