@@ -8,7 +8,10 @@
 
 ## 현재 상태
 
-**9단계(시각 효과)까지 완료.** 트랙 생성 → 50대 신경망 주행 → 평가 → 수동(클릭·드래그 + 결정완료) 또는 자동 부모 선택 → 교차·돌연변이 → 금색 챔피언 보존 → 다음 세대, 그리고 정지할 때까지 반복하는 자동 학습. 실험 저장·불러오기(JSON), 세대별 통계 CSV, 최고 유전자 저장. 금색 오라, 고스트 비교, 종료 사유 표시. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
+**1~10단계 모두 완료.** 트랙 생성(하·중·상, 시드) → 50대 신경망 동시 주행 → 평가 → 수동(클릭·드래그 + 결정완료) 또는 자동 부모 선택 → 교차·돌연변이 → 금색 챔피언 보존 → 다음 세대, 정지할 때까지 반복하는 자동 학습, 실험 저장·불러오기, CSV, 고스트, 금색 오라.
+검증 결과는 [docs/VERIFICATION.md](docs/VERIFICATION.md), 발표 순서는 [docs/PRESENTATION.md](docs/PRESENTATION.md).
+
+시연용 실험: "실험 불러오기"로 `demo/demo-medium-30세대.race.json` 을 열면 30세대 학습한 상태에서 바로 시작한다.
 
 ## 기술 스택
 
@@ -41,3 +44,5 @@ npm run test:e2e   # 개발 서버를 자동으로 띄우고 e2e/ 테스트 실�
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 구조와 핵심 설계 |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | 단계별 구현 계획과 진행 상황 |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | 원문에 없는 부분의 결정 기록 |
+| [docs/VERIFICATION.md](docs/VERIFICATION.md) | 필수 검증 항목 ↔ 자동 테스트 대응표, 학습 곡선 |
+| [docs/PRESENTATION.md](docs/PRESENTATION.md) | 발표 시연 순서 |

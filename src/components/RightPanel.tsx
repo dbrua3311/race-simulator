@@ -5,6 +5,7 @@ import type { RunStats } from '../app/runStats';
 import type { GenerationRecord, Ghost } from '../simulation/experiment';
 import { GHOST_MODE_LABEL, type GhostMode } from '../visualization/ghost';
 import { END_REASON_LABEL } from '../simulation/types';
+import { MarkLegend } from './MarkLegend';
 import { Section } from './Panel';
 
 interface Props {
@@ -15,13 +16,15 @@ interface Props {
   ghost: Ghost | null;
   ghostMode: GhostMode;
   ghostGeneration: number | null;
+  /** 고스트를 지금 화면에 그리는 중인가 (부모 선택 중에는 숨김) */
+  showGhost: boolean;
   onGhostChange(mode: GhostMode, generation: number | null): void;
 }
 
 const pct = (v: number | undefined) => (v === undefined ? '-' : `${(v * 100).toFixed(1)}%`);
 const diff = (d: number) => `${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}%p`;
 
-export function RightPanel({ generation, stats, history, auto, ghost, ghostMode, ghostGeneration, onGhostChange }: Props) {
+export function RightPanel({ generation, stats, history, auto, ghost, ghostMode, ghostGeneration, showGhost, onGhostChange }: Props) {
   const [metric, setMetric] = useState<'progress' | 'fitness'>('progress');
   const counts = stats?.counts;
   const count = (v: number | undefined) => (v === undefined ? '-' : `${v}대`);
@@ -61,6 +64,10 @@ export function RightPanel({ generation, stats, history, auto, ghost, ghostMode,
             자동 학습 계산 속도: 실시간의 약 {Math.round(stats.actualSpeed)}배
           </p>
         )}
+      </Section>
+
+      <Section title="표시">
+        <MarkLegend ghost={!!ghost && showGhost} />
       </Section>
 
       <Section title="세대별 성능">

@@ -1,0 +1,94 @@
+# 검증 결과
+
+원문 PART 19(필수 검증 조건)·PART 20(주의할 버그)을 실제 자동 테스트와 대응시킨 표. 모두 통과 상태다 (10단계 기준).
+
+- 단위 테스트: `npm test` (Vitest, `tests/`) — 123개
+- 브라우저 테스트: `npm run test:e2e` (Playwright + Chromium, `e2e/`) — 15개
+- 트랙 대량 검사: `TRACK_SEEDS=1000 npm test` — 난이도마다 시드 1000개, 총 3000개 트랙
+- GitHub Actions 가 PR 마다 lint · typecheck · 단위 테스트 · 빌드 · 브라우저 테스트를 모두 실행한다
+
+## 55. 트랙
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 단일 폐회로, 갈림길·지름길·함정·자기 교차 없음 | 극좌표 생성(구조상 불가능) + `tests/tracks/generate.test.ts` "모두 검증을 통과하는 단일 폐회로" (서로 다른 구간 8 m 이상, 벽 교차 없음) · `validate.test.ts` 8자·맞닿는 트랙 거부 |
+| 같은 시드 → 같은 트랙 | `generate.test.ts` 재현성 · `e2e/track.spec.ts` 캔버스 픽셀 동일 |
+| 첫 주행 후 트랙 고정 | `tests/app/state.test.ts` · `e2e/track.spec.ts` 고정·해제 |
+| 실제로 주행 가능 | `tests/simulation/progress.test.ts` 중심선 추종 운전자로 하·상 트랙 완주 · 학습 곡선(아래) |
+
+## 56. 자동차
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 동시 출발 | `world.test.ts` 같은 tick · `e2e/drive.spec.ts` 카운트다운 후 50대 |
+| 차끼리 충돌·간섭 없음, 종료 차도 방해 없음 | `world.test.ts` "혼자 달려도 50대 속에서 달려도 똑같다" |
+| 벽 충돌 종료 | `collision.test.ts` · `world.test.ts` 종료 조건 |
+| 브레이크로 속도 0 → 종료, 출발 당시 0 은 아님 | `world.test.ts` 브레이크 정지 / 처음부터 제동 → 안전 종료 / 저절로 느려짐은 아님 |
+| 일시정지는 브레이크 종료가 아님 | `tests/workers/simLoop.test.ts` 일시정지 |
+| 체크포인트 순서대로만 완주, 한 바퀴 후 즉시 종료 | `progress.test.ts` 완주 지점, 결승선 왕복·역주행 불가 |
+
+## 57. 진화
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 실제 교차·돌연변이 | `tests/genetics/operators.test.ts` 뉴런 단위 교차, 돌연변이 비율, 자손이 부모와 다름 |
+| 적합도는 실제 주행 결과 | `fitness.test.ts` · `experiment.test.ts` 평가 |
+| 미완주 차도 1등 | `fitness.test.ts` 35/82/64/91% 예시 |
+| 직전 1등 유전자 변형 없이 보존 | `operators.test.ts` 비트 단위 동일 · `experiment.test.ts` 챔피언이 직전 1등 기록을 정확히 재현 (4세대) |
+| 금색 챔피언 정확히 1대 | `experiment.test.ts` 1세대 0대, 이후 1대 |
+| 세대를 거듭하면 실제로 좋아진다 | `experiment.test.ts` 12세대 진화로 진행률 향상 (아래 학습 곡선 참고) |
+
+## 58. 수동 모드
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 종료 위치 그대로 | `world.test.ts` 종료 후 고정 · 화면 전환 없음 |
+| 클릭 선택·해제, 드래그 다중 선택(겹친 차 포함) | `e2e/evolution.spec.ts` 클릭 토글, 드래그로 50대 |
+| 결정완료 전에는 넘어가지 않음 | `evolution.spec.ts` 선택 후 대기 · `simLoop.test.ts` 평가 후 대기 |
+| 고른 부모의 유전자가 다음 세대에 반영 | `operators.test.ts` 고른 부모 유전자로만 · `experiment.test.ts` 부모 기록 |
+
+## 59. 자동 모드
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 입력 없이 여러 세대, 세대 번호 증가, 실제 주행 보임 | `simLoop.test.ts` · `e2e/evolution.spec.ts` 4세대 이상 · `e2e/performance.spec.ts` 100대 |
+| 정지 버튼 언제든 반응 | `performance.spec.ts` 1초 안 반응 (100대) |
+| 정지 후 선택창 없이 일반 화면, 상태 보존 | `evolution.spec.ts` · `simLoop.test.ts` 정지 후 세대·위치·기록 그대로, 새 세대 0 |
+| 수동으로 이어 가기, 다시 자동 학습 | `simLoop.test.ts` 재개 → 같은 세대 · 다시 시작 → 같은 세대부터 |
+| 자동·수동 반복 전환에도 데이터 유지 | `simLoop.test.ts` · `evolution.spec.ts` |
+
+## 60. 기록과 저장
+
+| 항목 | 확인한 테스트 |
+|---|---|
+| 완주 시간 = 시뮬레이션 시간, 배속과 무관 | `simLoop.test.ts` 1배속·10배속·건너뛰기 결과 동일 · `e2e/drive.spec.ts` 최종 화면 픽셀 동일 |
+| 더 빠른 완주가 나오면 갱신 | 세대 최고 완주 = 가장 작은 완주 스텝 (`simLoop.ts`) · `e2e/persistence.spec.ts` 시연 파일 완주 기록 |
+| 고스트가 학습에 영향 없음 | `e2e/visuals.spec.ts` 고스트 켬/끔 결과 동일 |
+| 유전자·트랙·세대·통계 복원 | `tests/persistence/saveFile.test.ts` 저장 → 불러오기 → 이어서 계산 동일 · `e2e/persistence.spec.ts` |
+| 부모 선택 미확정 상태 유지 | `persistence.spec.ts` 선택 2대 복원, 저절로 안 넘어감 |
+| 손상된 파일에도 현재 실험 유지 | `saveFile.test.ts` 손상 9종 · `persistence.spec.ts` |
+
+## PART 20. 주의할 버그
+
+| 버그 | 대응 · 확인 |
+|---|---|
+| 61. 자동 학습 정지 후에도 계산·세대 생성 | 정지 = 자동 반복 끄고 일시정지. `simLoop.test.ts` 정지 후 60초 흘려도 세대·tick 그대로 |
+| 62. 헤어핀에서 진행률 점프 | 직전 위치 주변에서만 위치 탐색. `progress.test.ts` 상 난이도 3개 트랙 한 바퀴 연속성 |
+| 63. 렌더링 주사율 의존 | 물리는 워커에서 고정 DT. 배속·건너뛰기 결과 동일 테스트 |
+| 64. 중복 세대 생성 | 세대 번호 토큰. `experiment.test.ts` · `simLoop.test.ts` 결정완료 두 번 → 한 세대 |
+| 65. 화면 갱신으로 트랙이 새로 생성 | 트랙은 명시적 조작에서만 생성. `state.test.ts` 고정 후 무시 |
+| 66. 원하지 않은 화면 | 부모 선택·자동 학습 정지 모두 같은 화면. `evolution.spec.ts` 정지 후 dialog 없음 |
+
+## 학습 곡선 (실측, 50대, 자동 선택, 화면 없이 계산)
+
+| 트랙 | 첫 완주 | 20세대 | 40세대 | 40세대 계산 시간 |
+|---|---|---|---|---|
+| 하 (1.46 km) | 8세대 | 평균 진행률 65%, 31대 완주 | 평균 75%, 36대 완주 | 16초 |
+| 중 (1.56 km) | 3세대 | 평균 50%, 23대 완주 | 평균 76%, 37대 완주 | 18초 |
+| 상 (1.41 km) | 4세대 | 평균 54%, 24대 완주 | 평균 62%, 30대 완주 | 16초 |
+
+센서 5개 입력만으로 충분히 학습한다 (DECISIONS D6 의 속도 입력 추가는 필요 없었다).
+
+## 구현하지 않은 것
+
+- 원문 17절의 "선택한 자동차의 센서 방향·거리 표시"는 원문이 핵심 이후의 선택적 확장으로 둔 기능이라 구현하지 않았다.

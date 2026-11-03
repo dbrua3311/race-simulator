@@ -13,3 +13,6 @@ test-results/
 # 개인 실험 저장 파일
 *.race.json
 exports/
+
+# 시연용 실험 파일은 저장소에 포함한다
+!demo/*.race.json
