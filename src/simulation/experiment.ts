@@ -5,6 +5,7 @@ import { createRng, type RngState } from '../core/rng';
 import { breed, type Candidate, type ParentInfo } from '../genetics/evolve';
 import { fitnessOf, finishTime, rankCars } from '../genetics/fitness';
 import { randomGenome } from '../genetics/genome';
+import { randomSequence } from '../genetics/sequence';
 import type { Genome } from '../genetics/network';
 import { MIN_PARENTS, type GaSettings } from '../genetics/params';
 import type { Track } from '../tracks/types';
@@ -73,14 +74,17 @@ export interface Experiment {
 
 export function newExperiment(track: Track, settings: GaSettings, seed: string): Experiment {
   const rng = createRng(`race-simulator/experiment/${seed}`);
-  const genomes = Array.from({ length: settings.populationSize }, () => randomGenome(rng));
+  const brain = settings.brain ?? 'network';
+  const genomes = Array.from({ length: settings.populationSize }, () =>
+    brain === 'sequence' ? randomSequence(rng) : randomGenome(rng),
+  );
   return {
     track,
     settings: { ...settings },
     seed,
     generation: 1,
     rng,
-    world: createWorld(track, genomes, rng),
+    world: createWorld(track, genomes, rng, { brain }),
     lineage: null,
     status: 'ready',
     history: [],
@@ -91,11 +95,15 @@ export function newExperiment(track: Track, settings: GaSettings, seed: string):
 /** 현재 세대 차들을 공식 순위대로 (평가용 후보) */
 export function rankedCandidates(exp: Experiment): Candidate[] {
   const { world } = exp;
-  return rankCars(world.cars).map((i) => ({
-    id: world.cars[i]!.id,
-    genome: world.genomes[i]!,
-    fitness: fitnessOf(world.cars[i]!),
-  }));
+  return rankCars(world.cars).map((i) => {
+    const car = world.cars[i]!;
+    return {
+      id: car.id,
+      genome: world.genomes[i]!,
+      fitness: fitnessOf(car),
+      reached: car.endReason === 'finish' ? null : car.bestDistance,
+    };
+  });
 }
 
 /** 모든 차가 종료된 세대를 평가해 기록·고스트를 남긴다 */
@@ -156,7 +164,7 @@ export class GenerationError extends Error {}
 /**
  * 평가가 끝난 세대에서 다음 세대를 만든다. 세대를 만드는 곳은 여기 하나뿐이다.
  * expectedGeneration 이 현재 세대와 다르면 거부한다 → 중복 클릭·겹친 명령으로 한 세대가 두 번 생기지 않는다 (원문 64절).
- * parentIds: 수동 선택이면 고른 차 번호들(2대 이상), 자동이면 null.
+ * parentIds: 수동 선택이면 고른 차 번호들(1대 이상), 자동이면 null.
  */
 export function nextGeneration(exp: Experiment, parentIds: number[] | null, expectedGeneration: number): void {
   if (exp.status !== 'evaluated') throw new GenerationError('세대 평가가 끝나야 다음 세대를 만들 수 있습니다');
@@ -170,8 +178,9 @@ export function nextGeneration(exp: Experiment, parentIds: number[] | null, expe
   const record = exp.history.at(-1)!;
   record.parents = { mode: parentIds ? 'manual' : 'auto', ids: parentIds ?? [] };
 
-  const { genomes, lineage } = breed(ranked, parentIds, exp.settings, exp.rng);
-  exp.world = createWorld(exp.track, genomes, exp.rng, { championSlot: record.winner.slot });
+  const brain = exp.world.brain;
+  const { genomes, lineage } = breed(ranked, parentIds, exp.settings, exp.rng, brain);
+  exp.world = createWorld(exp.track, genomes, exp.rng, { championSlot: record.winner.slot, brain });
   exp.lineage = lineage;
   exp.generation++;
   exp.status = 'ready';

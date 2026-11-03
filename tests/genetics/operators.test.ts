@@ -57,6 +57,7 @@ describe('다음 세대 만들기', () => {
     id: i + 1,
     genome: randomGenome(rng),
     fitness: 100 - i,
+    reached: null,
   }));
 
   it('0번은 1등 유전자를 비트 단위로 그대로 복제한 챔피언, 나머지는 자손', () => {

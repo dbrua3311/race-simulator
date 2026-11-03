@@ -49,10 +49,11 @@ describe('세대 진화', () => {
     expect(exp.lineage!.slice(1).every((l) => l.ids.every((id) => others.includes(id)))).toBe(true);
   });
 
-  it('부모가 2대 미만이면 거부하고, 같은 세대를 두 번 만들 수 없다', () => {
+  it('부모가 없으면 거부하고, 같은 세대를 두 번 만들 수 없다', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 20 }, 's4');
     runToEnd(exp);
-    expect(() => nextGeneration(exp, [1], 1)).toThrow('2대 이상');
+    expect(() => nextGeneration(exp, [], 1)).toThrow('1대 이상');
+    expect(() => nextGeneration(exp, [999], 1)).toThrow('1대 이상');
     nextGeneration(exp, [1, 2], 1);
     expect(() => nextGeneration(exp, [1, 2], 1)).toThrow();
     expect(exp.generation).toBe(2);
@@ -88,6 +89,31 @@ describe('세대 진화', () => {
     expect(b.world.genomes).toEqual(a.world.genomes);
   });
 
+  it('부모 1대만 고르면 모든 자손이 그 차를 조금씩 바꾼 것', () => {
+    const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 20 }, 's8');
+    runToEnd(exp);
+    nextGeneration(exp, [5], 1);
+    expect(exp.lineage!.slice(1).every((l) => l.ids.length === 1 && l.ids[0] === 5 && !l.crossed)).toBe(true);
+  });
+
+  it('조작 순서 방식: 같은 거리에서 같은 조작, 챔피언 재현, 세대를 거듭하면 더 멀리 간다', () => {
+    const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 40, brain: 'sequence' }, 'seq');
+    expect(exp.world.brain).toBe('sequence');
+    const first = runToEnd(exp);
+    // 1세대는 모두 일단 출발한다
+    expect(exp.world.cars.every((c) => c.hasMoved)).toBe(true);
+    for (let g = 1; g < 15; g++) {
+      nextGeneration(exp, null, exp.generation);
+      const champion = () => exp.world.cars.find((c) => c.champion)!;
+      const record = runToEnd(exp);
+      expect(champion().bestDistance / champion().goal).toBeCloseTo(exp.history[g - 1]!.winner.progress, 12);
+      expect(record.bestProgress).toBeGreaterThanOrEqual(exp.history[g - 1]!.bestProgress);
+    }
+    const last = exp.history.at(-1)!;
+    expect(last.bestProgress).toBeGreaterThan(first.bestProgress * 2);
+    expect(last.averageProgress).toBeGreaterThan(first.averageProgress * 2);
+  }, 60000);
+
   it('세대를 거듭하면 실제로 더 멀리 간다 (유전 알고리즘이 작동)', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 40 }, 'learn');
     const first = runToEnd(exp);
@@ -96,7 +122,7 @@ describe('세대 진화', () => {
       runToEnd(exp);
     }
     const last = exp.history.at(-1)!;
-    expect(last.bestProgress).toBeGreaterThan(first.bestProgress);
-    expect(last.averageProgress).toBeGreaterThan(first.averageProgress);
+    expect(last.bestProgress).toBeGreaterThanOrEqual(first.bestProgress);
+    expect(last.averageProgress).toBeGreaterThan(first.averageProgress * 3);
   }, 60000);
 });

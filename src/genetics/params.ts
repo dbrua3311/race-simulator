@@ -18,7 +18,20 @@ export interface GaSettings {
   tournamentSize: number;
   /** 수동: 사용자가 부모를 고른다 / 자동: 토너먼트 선택 */
   selectionMode: 'manual' | 'auto';
+  /** 운전 방식 (새 실험·학습 초기화 때 적용, DECISIONS D35) */
+  brain: Brain;
 }
+
+/**
+ * network: 센서 5개 → 신경망 → 조향·가속/제동 (보고 운전한다)
+ * sequence: 0.25 초 간격의 조향·페달 순서 자체가 유전자 (트랙을 외워서 운전한다)
+ */
+export type Brain = 'network' | 'sequence';
+
+export const BRAIN_LABEL: Record<Brain, string> = {
+  network: '신경망 (센서로 보고 운전)',
+  sequence: '조작 순서 (외워서 운전)',
+};
 
 export const DEFAULT_SETTINGS: GaSettings = {
   populationSize: 50,
@@ -28,8 +41,12 @@ export const DEFAULT_SETTINGS: GaSettings = {
   mutationStrength: 0.25,
   tournamentSize: 5,
   selectionMode: 'manual',
+  brain: 'network',
 };
 
 export const POPULATION_RANGE = [10, 100] as const;
-/** 수동 선택에서 필요한 최소 부모 수 (원문 30절). 최대는 제한하지 않는다 */
-export const MIN_PARENTS = 2;
+/**
+ * 수동 선택에서 필요한 최소 부모 수. 원문 30절은 "기본적으로 2대"였으나 사용자 요청으로 1대도 허용한다 (D36):
+ * 1대면 모든 자손이 그 차를 조금씩 다르게 따라 한다. 최대는 제한하지 않는다
+ */
+export const MIN_PARENTS = 1;

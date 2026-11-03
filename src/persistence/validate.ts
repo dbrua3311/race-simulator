@@ -1,6 +1,7 @@
 // 불러온 저장 파일 검사. 하나라도 이상하면 오류를 던지고, 호출한 쪽은 지금 실험을 그대로 둔다 (원문 60절).
 
 import { parameterCount } from '../genetics/network';
+import { SEQUENCE_GENES } from '../genetics/sequence';
 import { POPULATION_RANGE } from '../genetics/params';
 import { SAVE_FORMAT, SAVE_FORMAT_VERSION, type SaveFile } from './saveFile';
 
@@ -41,6 +42,13 @@ export function parseSaveFile(text: string): SaveFile {
   }
   const file = obj(data, '파일');
   if (file.format !== SAVE_FORMAT) fail('Race Simulator 실험 파일이 아닙니다');
+  // 버전 2 → 3: 운전 방식이 없던 시절 파일은 모두 신경망 방식이다
+  if (file.formatVersion === 2 && isObj(file.experiment)) {
+    const e = file.experiment;
+    if (isObj(e.world) && e.world.brain === undefined) e.world.brain = 'network';
+    if (isObj(e.settings) && e.settings.brain === undefined) e.settings.brain = 'network';
+    file.formatVersion = SAVE_FORMAT_VERSION;
+  }
   if (file.formatVersion !== SAVE_FORMAT_VERSION) {
     fail(`지원하지 않는 파일 형식 버전입니다 (파일 ${String(file.formatVersion)}, 지금 ${SAVE_FORMAT_VERSION}). 예전 버전에서 저장한 실험은 이어서 할 수 없습니다`);
   }
@@ -75,6 +83,7 @@ export function parseSaveFile(text: string): SaveFile {
   num(settings.mutationStrength, '돌연변이 크기');
   num(settings.tournamentSize, '토너먼트 크기');
   if (settings.selectionMode !== 'manual' && settings.selectionMode !== 'auto') fail('진화 방식이 올바르지 않습니다');
+  if (settings.brain !== 'network' && settings.brain !== 'sequence') fail('운전 방식이 올바르지 않습니다');
 
   if (num(exp.generation, '세대 번호') < 1) fail('세대 번호가 올바르지 않습니다');
   const rng = obj(exp.rng, '난수 상태');
@@ -87,7 +96,8 @@ export function parseSaveFile(text: string): SaveFile {
   const genomes = arr(world.genomes, '유전자');
   const trails = arr(world.trails, '주행 궤적');
   if (cars.length === 0 || cars.length !== genomes.length || cars.length !== trails.length) fail('자동차·유전자 수가 맞지 않습니다');
-  const genes = parameterCount();
+  if (world.brain !== 'network' && world.brain !== 'sequence') fail('운전 방식이 올바르지 않습니다');
+  const genes = world.brain === 'sequence' ? SEQUENCE_GENES : parameterCount();
   genomes.forEach((g) => {
     if (arr(g, '유전자').length !== genes) fail(`유전자 길이가 ${genes}개가 아닙니다`);
     numbers(g, '유전자');
