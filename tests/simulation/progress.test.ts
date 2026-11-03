@@ -18,15 +18,18 @@ describe('진행률·완주', () => {
       advance(world, track, 60 * 300, followCenterline(track));
       const car = world.cars[0]!;
       expect(car.endReason).toBe('finish');
-      expect(progressOf(car, track)).toBe(1);
-      expect(car.nextGate).toBe(gateDistances(track, car.startS).length);
-      // 한 바퀴를 넘지 않고 바로 멈춘다
-      expect(car.s - car.startS).toBeGreaterThanOrEqual(track.length);
-      expect(car.s - car.startS).toBeLessThan(track.length + 0.6);
+      expect(progressOf(car)).toBe(1);
+      expect(car.nextGate).toBe(gateDistances(track, car.startS, car.goal).length);
+      // 목표 거리(한 바퀴 + 도착 구간)를 넘지 않고 바로 멈춘다
+      expect(car.goal).toBeGreaterThan(track.length);
+      expect(car.s - car.startS).toBeGreaterThanOrEqual(car.goal);
+      expect(car.s - car.startS).toBeLessThan(car.goal + 0.6);
+      // 완주한 차는 출발선보다 앞(도착 구간)에 멈춘다
+      expect(car.s - track.length).toBeGreaterThan(0);
       expect(car.endTick! * DT).toBeGreaterThan(track.length / 13);
     });
 
-    it(`${difficulty}: 맨 뒷줄에서 출발해도 정확히 한 바퀴를 달려야 완주 (자기 출발점 기준)`, () => {
+    it(`${difficulty}: 맨 뒷줄에서 출발해도 같은 거리를 달려야 완주 (자기 출발점 기준)`, () => {
       const back = base.cars.findIndex((c) => c.slot === 47);
       const front = base.cars.findIndex((c) => c.slot === 2);
       const a = only(base, back);
@@ -43,7 +46,7 @@ describe('진행률·완주', () => {
   it('트랙을 한 바퀴 따라 움직이면 위치가 끊김 없이 늘어난다 (헤어핀에서도 건너뛰지 않음)', () => {
     for (const seed of ['C1', 'C2', 'C3']) {
       const track = testTrack(seed, 'hard');
-      const car = { ...blankCar(), trackIndex: 0 };
+      const car = { ...blankCar(), trackIndex: 0, goal: track.length * 2 };
       const n = track.center.length;
       let prev = car.s;
       for (let k = 1; k <= n * 5; k++) {
@@ -67,7 +70,7 @@ describe('진행률·완주', () => {
 
   it('결승선(출발선)을 앞뒤로 계속 넘나들어도 완주가 아니고 진행률도 늘지 않는다', () => {
     const track = testTrack();
-    const car = { ...blankCar(), startS: -4, s: -4, trackIndex: track.center.length - 2 };
+    const car = { ...blankCar(), startS: -4, s: -4, goal: track.length + 70, trackIndex: track.center.length - 2 };
     const f = tangentAt(track.center, 0);
     const p0 = track.center[0]!;
     for (let k = 0; k < 2000; k++) {
@@ -91,13 +94,30 @@ describe('진행률·완주', () => {
     expect(car.s).toBeLessThan(car.startS - 20);
   });
 
-  it('체크포인트 목록: 출발점부터 순서대로, 마지막은 한 바퀴 지점', () => {
+  it('체크포인트 목록: 출발점부터 순서대로, 마지막은 목표 지점', () => {
     const track = testTrack();
     const gates = gateDistances(track, -30);
     expect(gates.at(-1)).toBe(track.length);
     expect(gates).toEqual([...gates].sort((a, b) => a - b));
     expect(gates).toHaveLength(track.checkpoints.length + 2);
     expect(gates[0]).toBeCloseTo(30, 9); // 처음 지나는 것은 출발선
+    // 목표가 한 바퀴보다 길면 출발선(결승선)을 한 번 더 지나야 한다
+    const longer = gateDistances(track, -30, track.length + 70);
+    expect(longer).toContain(track.length + 30);
+    expect(longer.at(-1)).toBe(track.length + 70);
+  });
+
+  it('완주한 차는 출발 그리드보다 앞쪽 도착 구간에 멈춘다 (출발 직후 멈춘 차와 겹치지 않게)', () => {
+    const track = testTrack();
+    const base = randomWorld(track, 50, 'zone');
+    for (const slot of [0, 49]) {
+      const world = only(base, base.cars.findIndex((c) => c.slot === slot));
+      advance(world, track, 60 * 300, followCenterline(track));
+      const car = world.cars[0]!;
+      expect(car.endReason).toBe('finish');
+      const finishS = car.s - track.length;
+      expect(finishS).toBeGreaterThan(5);
+    }
   });
 
   it('그리드 자리의 출발 좌표는 출발선 뒤(음수)이고 앞줄일수록 출발선에 가깝다', () => {

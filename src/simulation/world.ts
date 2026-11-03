@@ -9,6 +9,7 @@ import { hitsWall, nearestIndex } from './collision';
 import {
   BRAKE_STOP_SPEED,
   DT,
+  FINISH_MARGIN,
   MAX_RUN_TIME,
   MOVE_SPEED,
   NO_PROGRESS_TIME,
@@ -58,6 +59,8 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
     order = [championSlot, ...rest];
   } else order = shuffledIndices(genomes.length, rng);
   const n = track.center.length;
+  // 모든 차의 목표 거리 = 한 바퀴 + (맨 뒷줄 거리 + 여유). 완주한 차는 출발 그리드 앞쪽 "도착 구간"에 멈춘다
+  const goal = track.length + finishOffset(slots);
   const cars: CarState[] = order.map((slotId, i) => {
     const slot = slots[slotId]!;
     const trackIndex = (((Math.round(slot.s / track.spacing) % n) + n) % n);
@@ -79,6 +82,7 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
       endReason: null,
       endTick: null,
       startS,
+      goal,
       s: startS,
       bestDistance: 0,
       bestTick: 0,
@@ -95,6 +99,11 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
     trails: cars.map((c) => [c.x, c.y, c.heading, 0]),
     finished: false,
   };
+}
+
+/** 도착 구간 거리: 맨 뒷줄도 출발선보다 FINISH_MARGIN 앞에서 완주하도록 */
+export function finishOffset(slots: readonly { s: number }[]): number {
+  return -Math.min(...slots.map((s) => s.s)) + FINISH_MARGIN;
 }
 
 const sensorBuffer: number[] = [];

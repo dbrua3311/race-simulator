@@ -42,3 +42,6 @@ export const PROGRESS_STEP = 1;
 
 /** 주행 궤적(고스트) 기록 간격 (스텝). 6 스텝 = 0.1 s */
 export const TRAIL_EVERY = 6;
+
+/** 도착 구간: 맨 뒷줄 차도 출발선보다 이만큼 앞에서 완주하도록 목표 거리를 늘린다 (m) */
+export const FINISH_MARGIN = 10;

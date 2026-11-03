@@ -249,7 +249,7 @@ export class SimLoop {
   private postSnapshot() {
     const exp = this.exp;
     if (!exp) return;
-    const { world, track } = exp;
+    const { world } = exp;
     const data = new Float32Array(world.cars.length * CAR_STRIDE);
     const counts: CarCounts = { running: 0, wall: 0, brake: 0, finish: 0, safety: 0 };
     let bestProgress = 0;
@@ -266,9 +266,9 @@ export class SimLoop {
       data[o + 3] = car.speed;
       data[o + 4] = END_CODES.indexOf(car.endReason);
       if (car.champion) championIndex = i;
-      const progress = progressOf(car, track);
+      const progress = progressOf(car);
       data[o + 5] = progress;
-      const fitness = fitnessOf(car, track);
+      const fitness = fitnessOf(car);
       bestProgress = Math.max(bestProgress, progress);
       progressSum += progress;
       bestFitness = Math.max(bestFitness, fitness);

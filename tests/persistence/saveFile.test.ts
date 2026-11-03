@@ -38,7 +38,7 @@ describe('실험 저장·불러오기', () => {
 
   it('저장 파일에 원문 45절 항목이 모두 들어 있다', () => {
     const file = roundTrip(twoGenerations());
-    expect(file).toMatchObject({ format: 'race-simulator-experiment', formatVersion: 1, name: '테스트' });
+    expect(file).toMatchObject({ format: 'race-simulator-experiment', formatVersion: 2, name: '테스트' });
     expect(file.savedAt).toBe('2026-11-04T10:00:00.000Z');
     const e = file.experiment;
     expect(e.track.seed).toBe('SAVE1');

@@ -30,7 +30,7 @@ describe('세대 진화', () => {
         const champion = exp.world.cars.find((c) => c.champion)!;
         const previous = exp.history[g - 2]!.winner;
         expect(champion.slot).toBe(previous.slot);
-        expect(champion.bestDistance / track.length).toBeCloseTo(previous.progress, 12);
+        expect(champion.bestDistance / champion.goal).toBeCloseTo(previous.progress, 12);
         // 최고 진행률은 떨어지지 않는다
         expect(record.bestProgress).toBeGreaterThanOrEqual(previous.progress);
       }

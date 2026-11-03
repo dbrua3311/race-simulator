@@ -72,7 +72,8 @@ describe.each(DIFFICULTIES)('트랙 생성 — 난이도 %s, 시드 여러 개',
         const i = (Math.round(slot.s / t.spacing) + n) % n;
         expect(Math.abs(curvature[i]!)).toBeLessThan(1e-6);
         const lateral = dot(sub(slot.position, t.center[i]!), leftNormal(tangentAt(t.center, i)));
-        expect(Math.abs(lateral) + 1.1).toBeLessThan(TRACK.roadWidth / 2 - 1);
+        // 바깥 줄 차와 벽 사이 2.5 m 이상 여유 (출발하자마자 벽에 닿지 않게)
+        expect(TRACK.roadWidth / 2 - (Math.abs(lateral) + 1.1)).toBeGreaterThanOrEqual(2.5 - 1e-9);
       }
       const rows = Math.ceil(count / GRID.columns);
       const rowGap = rows > 1 ? slots[GRID.columns]!.s - slots[0]!.s : -GRID.rowSpacing;

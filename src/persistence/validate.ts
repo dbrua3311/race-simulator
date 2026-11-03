@@ -41,7 +41,9 @@ export function parseSaveFile(text: string): SaveFile {
   }
   const file = obj(data, '파일');
   if (file.format !== SAVE_FORMAT) fail('Race Simulator 실험 파일이 아닙니다');
-  if (file.formatVersion !== SAVE_FORMAT_VERSION) fail(`지원하지 않는 파일 형식 버전입니다 (${String(file.formatVersion)})`);
+  if (file.formatVersion !== SAVE_FORMAT_VERSION) {
+    fail(`지원하지 않는 파일 형식 버전입니다 (파일 ${String(file.formatVersion)}, 지금 ${SAVE_FORMAT_VERSION}). 예전 버전에서 저장한 실험은 이어서 할 수 없습니다`);
+  }
   if (typeof file.name !== 'string' || typeof file.savedAt !== 'string') fail('실험 이름 또는 저장 시각이 없습니다');
 
   const exp = obj(file.experiment, '실험');
@@ -94,7 +96,7 @@ export function parseSaveFile(text: string): SaveFile {
   const ids = new Set<number>();
   for (const c of cars) {
     const car = obj(c, '자동차');
-    for (const key of ['id', 'slot', 'x', 'y', 'heading', 'speed', 'steer', 'throttle', 'trackIndex', 'startS', 's', 'bestDistance', 'bestTick', 'nextGate', 'progressMark', 'progressMarkTick']) {
+    for (const key of ['id', 'slot', 'x', 'y', 'heading', 'speed', 'steer', 'throttle', 'trackIndex', 'startS', 'goal', 's', 'bestDistance', 'bestTick', 'nextGate', 'progressMark', 'progressMarkTick']) {
       num(car[key], `자동차 ${key}`);
     }
     if ((car.trackIndex as number) < 0 || (car.trackIndex as number) >= n) fail('자동차 위치가 트랙 밖입니다');

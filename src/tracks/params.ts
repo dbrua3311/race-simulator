@@ -11,7 +11,7 @@ export const TRACK = {
   /** 서로 다른 구간의 도로 가장자리 사이 최소 간격 (m) */
   wallGap: 8,
   /** 기준 반지름 (m). 트랙 전체 크기를 정한다 */
-  baseRadius: 215,
+  baseRadius: 125,
   /** 메인 직선 길이 (m). 출발선 뒤 behind m + 출발선 앞 나머지 */
   straightLength: 130,
   straightBehind: 105,
@@ -25,8 +25,8 @@ export const TRACK = {
 
 export const GRID = {
   columns: 5,
-  /** 가로 간격 (m) */
-  columnSpacing: 3.2,
+  /** 가로 간격 (m). 바깥 줄 차와 벽 사이에 2.5 m 여유가 남도록 (출발하자마자 벽에 닿지 않게) */
+  columnSpacing: 2.7,
   /** 세로 간격 (m). 자리가 많으면 직선 안에 들어가도록 줄인다 */
   rowSpacing: 6.5,
   minRowSpacing: 5,
@@ -58,7 +58,7 @@ export const DIFFICULTY: Record<Difficulty, DifficultyParams> = {
     amplitude: 0.2,
     decay: 0.5,
     minCurveRadius: 30,
-    lengthRange: [1150, 1900],
+    lengthRange: [700, 1000],
     sharpRadius: 30,
     sharpTurns: [0, 0],
     minDirectionChanges: 0,
@@ -68,7 +68,7 @@ export const DIFFICULTY: Record<Difficulty, DifficultyParams> = {
     amplitude: 0.3,
     decay: 0.5,
     minCurveRadius: 18,
-    lengthRange: [1200, 2100],
+    lengthRange: [700, 1050],
     sharpRadius: 30,
     sharpTurns: [1, 99],
     minDirectionChanges: 2,
@@ -78,7 +78,7 @@ export const DIFFICULTY: Record<Difficulty, DifficultyParams> = {
     amplitude: 0.4,
     decay: 0.45,
     minCurveRadius: 14,
-    lengthRange: [1250, 2300],
+    lengthRange: [720, 1100],
     sharpRadius: 22,
     sharpTurns: [3, 99],
     minDirectionChanges: 4,
