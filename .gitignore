@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.local
+.env
+.env.*
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.log
+# 개인 실험 저장 파일
+*.race.json
+exports/
