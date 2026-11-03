@@ -17,9 +17,10 @@ export function drawGoldAura(
   heading: number,
   time: number,
   running: boolean,
+  pixel = false,
 ) {
   const p = worldToScreen(view, { x, y });
-  const base = Math.max(14, CAR.length * view.scale * 1.6);
+  const base = Math.max(pixel ? 7 : 14, CAR.length * view.scale * 1.6);
   const pulse = running ? 0.5 + 0.5 * Math.sin(time / 260) : 0.3;
 
   ctx.save();
@@ -40,9 +41,14 @@ export function drawGoldAura(
       const r = base * (0.75 + 0.18 * Math.sin(time / 300 + k * 1.7));
       const twinkle = 0.45 + 0.55 * Math.abs(Math.sin(time / 180 + k));
       ctx.fillStyle = `rgba(255, 228, 140, ${twinkle})`;
-      ctx.beginPath();
-      ctx.arc(p.x + Math.cos(angle) * r, p.y + Math.sin(angle) * r, 1.2 + twinkle, 0, Math.PI * 2);
-      ctx.fill();
+      const px = p.x + Math.cos(angle) * r;
+      const py = p.y + Math.sin(angle) * r;
+      if (pixel) ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
+      else {
+        ctx.beginPath();
+        ctx.arc(px, py, 1.2 + twinkle, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     // 뒤로 흩날리는 반짝임 (화면 좌표: 진행 방향의 반대쪽)
     const bx = -Math.cos(heading);
@@ -52,9 +58,14 @@ export function drawGoldAura(
       const d = base * (0.4 + phase * 1.6);
       const side = Math.sin(k * 2.3 + time / 400) * base * 0.35;
       ctx.fillStyle = `rgba(255, 220, 120, ${0.8 * (1 - phase)})`;
-      ctx.beginPath();
-      ctx.arc(p.x + bx * d - by * side, p.y + by * d + bx * side, 1.6 * (1 - phase) + 0.4, 0, Math.PI * 2);
-      ctx.fill();
+      const sx = p.x + bx * d - by * side;
+      const sy = p.y + by * d + bx * side;
+      if (pixel) ctx.fillRect(Math.round(sx), Math.round(sy), 1, 1);
+      else {
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.6 * (1 - phase) + 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
   ctx.restore();

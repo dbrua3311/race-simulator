@@ -8,6 +8,7 @@ import { measureTrack, type TrackMetrics } from '../tracks/metrics';
 import { DIFFICULTY } from '../tracks/params';
 import type { Difficulty, Track } from '../tracks/types';
 import type { GhostMode } from '../visualization/ghost';
+import type { RenderStyle } from '../visualization/style';
 import type { SimStatus } from '../workers/protocol';
 
 /**
@@ -66,6 +67,8 @@ export interface AppState {
   ghostMode: GhostMode;
   /** ghostMode 가 'generation' 일 때 비교할 세대 */
   ghostGeneration: number | null;
+  /** 화면 그림 방식 (기본: 픽셀아트) */
+  renderStyle: RenderStyle;
 }
 
 export interface Notice {
@@ -101,6 +104,7 @@ export type Action =
   | { type: 'message'; message: Notice | null }
   | { type: 'setName'; name: string }
   | { type: 'setGhost'; mode: GhostMode; generation: number | null }
+  | { type: 'setRenderStyle'; style: RenderStyle }
   | { type: 'newGame' };
 
 export function initialState(seed: string, difficulty: Difficulty = 'medium'): AppState {
@@ -127,6 +131,7 @@ export function initialState(seed: string, difficulty: Difficulty = 'medium'): A
       experimentName: '',
       ghostMode: 'best',
       ghostGeneration: null,
+      renderStyle: 'pixel',
     },
     difficulty,
     seed,
@@ -241,6 +246,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, experimentName: action.name };
     case 'setGhost':
       return { ...state, ghostMode: action.mode, ghostGeneration: action.generation };
+    case 'setRenderStyle':
+      return { ...state, renderStyle: action.style };
     case 'newGame':
       return {
         ...state,

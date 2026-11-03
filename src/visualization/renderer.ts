@@ -3,6 +3,8 @@ import { CAR } from '../simulation/params';
 import { finishOffset } from '../simulation/world';
 import { tangentAt } from '../tracks/generate';
 import type { GridSlot, Track } from '../tracks/types';
+import { drawPixelRoad } from './pixelTrack';
+import type { RenderStyle } from './style';
 import { worldToScreen, type Viewport } from './viewport';
 
 const COLORS = {
@@ -48,7 +50,21 @@ export function drawMessage(ctx: CanvasRenderingContext2D, width: number, height
   ctx.fillText(text, width / 2, height / 2);
 }
 
-export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
+export function drawTrack(
+  ctx: CanvasRenderingContext2D,
+  track: Track,
+  view: Viewport,
+  slots: GridSlot[],
+  style: RenderStyle = 'smooth',
+) {
+  if (style === 'pixel') {
+    drawPixelRoad(ctx, track, view);
+    if (slots.length) drawFinishZone(ctx, track, view, slots);
+    drawStartLine(ctx, track, view);
+    drawDirectionArrow(ctx, track, view);
+    for (const slot of slots) drawSlot(ctx, slot, view);
+    return;
+  }
   const toScreen = (p: Vec) => worldToScreen(view, p);
 
   // 도로: 왼쪽 벽 고리와 오른쪽 벽 고리 사이를 evenodd 로 채운다 (충돌 판정과 같은 경계)
@@ -103,13 +119,36 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Vie
  * 도착 구간: 모든 차가 같은 거리(한 바퀴 - 그리드 길이 - 여유)를 달리므로, 완주한 차는 자기 출발 자리보다
  * 그만큼 뒤에 멈춘다. 그 범위(출발 그리드 바로 뒤)를 초록 띠로 보여 준다.
  */
-function drawFinishZone(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
+function finishZoneRange(track: Track, slots: GridSlot[]) {
   const offset = finishOffset(slots);
   const from = Math.min(...slots.map((s) => s.s)) - offset - CAR.length / 2;
   const to = Math.max(...slots.map((s) => s.s)) - offset + CAR.length / 2;
+  return { i0: Math.floor(from / track.spacing), i1: Math.ceil(to / track.spacing) };
+}
+
+/** 트랙 위 글씨(도착 구간 이름표). 픽셀아트에서도 또렷하도록 원래 해상도로 따로 그린다 */
+export function drawTrackLabels(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
+  if (!slots.length) return;
+  const { i0, i1 } = finishZoneRange(track, slots);
   const n = track.center.length;
-  const i0 = Math.floor(from / track.spacing);
-  const i1 = Math.ceil(to / track.spacing);
+  const mid = (((Math.round((i0 + i1) / 2)) % n) + n) % n;
+  const out = sub(track.right[mid]!, track.center[mid]!);
+  const labelAt = worldToScreen(view, add(track.right[mid]!, scale(out, 0.7)));
+  ctx.save();
+  ctx.font = '700 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(8, 12, 20, 0.85)';
+  ctx.strokeText('도착 구간', labelAt.x, labelAt.y);
+  ctx.fillStyle = 'rgba(110, 230, 170, 1)';
+  ctx.fillText('도착 구간', labelAt.x, labelAt.y);
+  ctx.restore();
+}
+
+function drawFinishZone(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
+  const { i0, i1 } = finishZoneRange(track, slots);
+  const n = track.center.length;
   const idx = (i: number) => ((i % n) + n) % n;
   const left: Vec[] = [];
   const right: Vec[] = [];
@@ -133,16 +172,6 @@ function drawFinishZone(ctx: CanvasRenderingContext2D, track: Track, view: Viewp
     ctx.lineTo(b.x, b.y);
     ctx.stroke();
   }
-  // 이름표: 구간 가운데, 도로 바깥쪽(오른쪽 벽 바깥)
-  const mid = idx(Math.round((i0 + i1) / 2));
-  const out = sub(track.right[mid]!, track.center[mid]!);
-  const labelAt = worldToScreen(view, add(track.right[mid]!, scale(out, 0.6)));
-  ctx.setLineDash([]);
-  ctx.font = '600 11px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(74, 210, 149, 0.95)';
-  ctx.fillText('도착 구간', labelAt.x, labelAt.y);
   ctx.restore();
 }
 

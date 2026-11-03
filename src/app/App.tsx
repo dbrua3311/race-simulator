@@ -231,6 +231,7 @@ export function App() {
           onSelectMany={(ids) => dispatch({ type: 'addSelection', ids })}
           ghost={ghost}
           showGhost={showGhost}
+          renderStyle={state.renderStyle}
         />
         <RightPanel
           generation={showGeneration ? state.generation : null}
@@ -241,6 +242,8 @@ export function App() {
           ghostMode={state.ghostMode}
           ghostGeneration={state.ghostGeneration}
           showGhost={showGhost}
+          renderStyle={state.renderStyle}
+          onRenderStyleChange={(style) => dispatch({ type: 'setRenderStyle', style })}
           onGhostChange={(mode, generation) => dispatch({ type: 'setGhost', mode, generation })}
         />
       </main>
