@@ -100,13 +100,13 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Vie
 }
 
 /**
- * 도착 구간: 모든 차가 같은 거리(한 바퀴 + 도착 구간 거리)를 달리므로, 완주한 차는 자기 출발 자리보다
- * 그만큼 앞에 멈춘다. 그 범위를 초록 띠로 보여 준다 (출발 그리드와 겹치지 않음).
+ * 도착 구간: 모든 차가 같은 거리(한 바퀴 - 그리드 길이 - 여유)를 달리므로, 완주한 차는 자기 출발 자리보다
+ * 그만큼 뒤에 멈춘다. 그 범위(출발 그리드 바로 뒤)를 초록 띠로 보여 준다.
  */
 function drawFinishZone(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
   const offset = finishOffset(slots);
-  const from = offset + Math.min(...slots.map((s) => s.s)) - CAR.length / 2;
-  const to = offset + Math.max(...slots.map((s) => s.s)) + CAR.length / 2;
+  const from = Math.min(...slots.map((s) => s.s)) - offset - CAR.length / 2;
+  const to = Math.max(...slots.map((s) => s.s)) - offset + CAR.length / 2;
   const n = track.center.length;
   const i0 = Math.floor(from / track.spacing);
   const i1 = Math.ceil(to / track.spacing);
