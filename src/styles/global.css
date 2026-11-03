@@ -489,10 +489,9 @@ select:disabled {
 }
 
 .legend {
-  flex-direction: row;
+  display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
-  max-width: 360px;
   color: var(--muted);
   font-size: 11px;
 }

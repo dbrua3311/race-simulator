@@ -185,6 +185,8 @@ export function App() {
   }
 
   const showGeneration = state.phase !== 'trackSetup';
+  // 수동 부모 선택 단계에서는 고스트를 숨긴다 (원문 44절)
+  const showGhost = state.phase !== 'parentSelection' && state.phase !== 'trackSetup';
   const ghost = useMemo(
     () => pickGhost(state.ghosts, state.ghostMode, state.generation, state.ghostGeneration),
     [state.ghosts, state.ghostMode, state.generation, state.ghostGeneration],
@@ -228,8 +230,7 @@ export function App() {
           onToggle={(id) => dispatch({ type: 'toggleSelect', id })}
           onSelectMany={(ids) => dispatch({ type: 'addSelection', ids })}
           ghost={ghost}
-          // 수동 부모 선택 단계에서는 고스트를 숨긴다 (원문 44절)
-          showGhost={state.phase !== 'parentSelection' && state.phase !== 'trackSetup'}
+          showGhost={showGhost}
         />
         <RightPanel
           generation={showGeneration ? state.generation : null}
@@ -239,6 +240,7 @@ export function App() {
           ghost={ghost}
           ghostMode={state.ghostMode}
           ghostGeneration={state.ghostGeneration}
+          showGhost={showGhost}
           onGhostChange={(mode, generation) => dispatch({ type: 'setGhost', mode, generation })}
         />
       </main>

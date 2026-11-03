@@ -93,3 +93,22 @@ test('주행 중 저장 → 불러오면 그 시점에서 일시정지, 재개�
   await page.getByRole('button', { name: '주행 재개' }).click();
   await expect.poll(() => page.getByTestId('sim-time').textContent()).not.toBe(time);
 });
+
+test('시연용 실험 파일: 30세대까지 학습한 상태로 불러와 이어서 달리면 완주 기록이 나온다', async ({ page }) => {
+  test.setTimeout(90000);
+  await page.goto('/');
+  await page.getByTestId('load-input').setInputFiles('demo/demo-medium-30세대.race.json');
+  await expect(page.getByTestId('toast')).toContainText('불러왔습니다');
+  await expect(page.getByTestId('generation')).toHaveText('31');
+  await expect(page.getByTestId('phase')).toHaveText('주행 준비');
+  await expect(page.getByTestId('best-car')).toContainText('30세대 1등');
+  await page.getByRole('button', { name: '주행 시작' }).click();
+  await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
+  await page.getByRole('button', { name: '10배속' }).click();
+  await page.waitForTimeout(4000);
+  await page.screenshot({ path: 'test-results/demo-running.png' });
+  await page.getByRole('button', { name: '건너뛰기' }).click();
+  await expect(page.getByTestId('phase')).toHaveText('부모 선택', { timeout: 60000 });
+  await expect(page.getByTestId('finish-record')).toHaveText(/^\d\d:\d\d\.\d\d$/);
+  await page.screenshot({ path: 'test-results/demo-finished.png' });
+});

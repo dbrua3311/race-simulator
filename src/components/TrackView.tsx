@@ -239,7 +239,6 @@ export function TrackView(props: Props) {
           {hover.text}
         </div>
       )}
-      {generation !== null && <Legend ghost={!!props.ghost && props.showGhost} />}
       {track && (
         <div className="overlay overlay-bottom-left" data-testid="track-label">
           난이도 {DIFFICULTY_LABEL[track.difficulty]} · 시드 <span className="mono">{track.seed}</span>
@@ -262,35 +261,3 @@ function drawDragRect(ctx: CanvasRenderingContext2D, a: Vec, b: Vec) {
   ctx.restore();
 }
 
-function Legend({ ghost }: { ghost: boolean }) {
-  return (
-    <div className="overlay overlay-bottom-right legend" data-testid="legend">
-      <span>
-        <i className="lg-gold" />
-        금색 챔피언
-      </span>
-      <span>
-        <i className="lg-select" />
-        선택
-      </span>
-      <span>
-        <b className="lg-wall">✕</b>벽 충돌
-      </span>
-      <span>
-        <b className="lg-brake">■</b>브레이크 정지
-      </span>
-      <span>
-        <b className="lg-finish">✓</b>완주
-      </span>
-      <span>
-        <b className="lg-safety">○</b>안전 종료
-      </span>
-      {ghost && (
-        <span>
-          <i className="lg-ghost" />
-          고스트
-        </span>
-      )}
-    </div>
-  );
-}
