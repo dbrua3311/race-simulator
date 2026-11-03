@@ -41,7 +41,7 @@ test('주행을 시작하면 트랙이 고정되고, 새 판에서 풀린다', a
 
   await page.getByRole('button', { name: '주행 시작' }).click();
   await expect(page.getByText('트랙 고정됨')).toBeVisible();
-  await expect(page.getByTestId('phase')).toHaveText('주행 준비');
+  await expect(page.getByTestId('phase')).toHaveText('출발 카운트다운');
   await expect(page.getByRole('button', { name: '트랙 다시 생성' })).toBeDisabled();
   await expect(page.getByLabel('시드', { exact: true })).toBeDisabled();
   for (const label of ['하', '중', '상']) await expect(difficulty.getByRole('button', { name: label })).toBeDisabled();

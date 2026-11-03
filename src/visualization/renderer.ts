@@ -1,4 +1,5 @@
 import { add, leftNormal, scale, sub, type Vec } from '../core/vec';
+import { CAR } from '../simulation/params';
 import { tangentAt } from '../tracks/generate';
 import type { GridSlot, Track } from '../tracks/types';
 import { worldToScreen, type Viewport } from './viewport';
@@ -15,8 +16,8 @@ const COLORS = {
   message: 'rgba(200, 214, 235, 0.55)',
 };
 
-/** 출발 그리드 자리 표시 크기 (m) */
-const SLOT_SIZE = { length: 4.6, width: 2.2 };
+/** 출발 그리드 자리 표시 크기 (m): 차체보다 조금 크게 */
+const SLOT_SIZE = { length: CAR.length + 0.6, width: CAR.width + 0.5 };
 
 export function clear(ctx: CanvasRenderingContext2D, width: number, height: number, dpr: number) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

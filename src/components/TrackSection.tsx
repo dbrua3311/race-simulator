@@ -7,7 +7,13 @@ import { Field, Section } from './Panel';
 const DIFFICULTIES: Difficulty[] = ['easy', 'medium', 'hard'];
 
 /** 시드가 바뀌면 입력칸을 새로 맞추도록 부모에서 key={seed} 로 렌더한다 */
-export function TrackSection({ state, dispatch }: { state: AppState; dispatch: Dispatch<Action> }) {
+interface Props {
+  state: AppState;
+  dispatch: Dispatch<Action>;
+  onNewGame(): void;
+}
+
+export function TrackSection({ state, dispatch, onNewGame }: Props) {
   const locked = state.trackLocked;
   const [draft, setDraft] = useState(state.seed);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -94,7 +100,7 @@ export function TrackSection({ state, dispatch }: { state: AppState; dispatch: D
           <p className="notice">
             트랙이 고정되었습니다. 다른 트랙에서 실험하려면 새 판을 시작하세요.
           </p>
-          <button type="button" className="btn-block" onClick={() => dispatch({ type: 'newGame' })}>
+          <button type="button" className="btn-block" onClick={onNewGame}>
             새 판 시작
           </button>
         </>

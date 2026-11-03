@@ -25,7 +25,7 @@ describe('화면 상태 — 트랙 생성과 고정', () => {
   it('주행을 시작하면 트랙이 고정되어 생성·난이도 변경이 무시된다', () => {
     const locked = reducer(initialState('ABC'), { type: 'startRun' });
     expect(locked.trackLocked).toBe(true);
-    expect(locked.phase).toBe('ready');
+    expect(locked.phase).toBe('countdown');
     expect(reducer(locked, { type: 'generateTrack', seed: 'XYZ' })).toBe(locked);
     expect(reducer(locked, { type: 'setDifficulty', difficulty: 'hard' })).toBe(locked);
   });
@@ -36,6 +36,24 @@ describe('화면 상태 — 트랙 생성과 고정', () => {
     expect(fresh.trackLocked).toBe(false);
     expect(fresh.phase).toBe('trackSetup');
     expect(fresh.track).toBe(locked.track);
+  });
+
+  it('카운트다운 3초가 끝나면 주행 중이 된다', () => {
+    let s = reducer(initialState('ABC'), { type: 'startRun' });
+    expect(s.countdown).toBe(3);
+    s = reducer(s, { type: 'countdownTick' });
+    s = reducer(s, { type: 'countdownTick' });
+    expect(s.phase).toBe('countdown');
+    s = reducer(s, { type: 'countdownTick' });
+    expect(s.phase).toBe('running');
+  });
+
+  it('카운트다운 중에는 워커 상태를 무시하고, 이후에는 따른다', () => {
+    const counting = reducer(initialState('ABC'), { type: 'startRun' });
+    expect(reducer(counting, { type: 'simStatus', status: 'paused', skipping: false })).toBe(counting);
+    const running = { ...counting, phase: 'running' as const, countdown: 0 };
+    expect(reducer(running, { type: 'simStatus', status: 'paused', skipping: false }).phase).toBe('paused');
+    expect(reducer(running, { type: 'simStatus', status: 'finished', skipping: false }).phase).toBe('finished');
   });
 
   it('트랙이 없으면 주행을 시작할 수 없다', () => {

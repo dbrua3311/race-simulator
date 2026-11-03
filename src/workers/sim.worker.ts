@@ -1,10 +1,15 @@
-import { handleCommand, type WorkerCommand, type WorkerEvent } from './protocol';
+import type { WorkerCommand, WorkerEvent } from './protocol';
+import { SimLoop } from './simLoop';
 
 const scope = self as unknown as {
   onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
-  postMessage(message: WorkerEvent): void;
+  postMessage(message: WorkerEvent, transfer?: Transferable[]): void;
 };
 
-scope.onmessage = (event) => {
-  for (const reply of handleCommand(event.data)) scope.postMessage(reply);
-};
+const loop = new SimLoop({
+  now: () => performance.now(),
+  schedule: (fn, delay) => setTimeout(fn, delay),
+  post: (event, transfer) => scope.postMessage(event, transfer ?? []),
+});
+
+scope.onmessage = (event) => loop.handle(event.data);

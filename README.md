@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-**2단계(트랙 시스템) 완료.** 난이도·시드로 트랙을 만들고 미리 볼 수 있다. 자동차·진화 기능은 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
+**3단계(자동차 물리·렌더링) 완료.** 트랙을 만들고 50대가 동시에 출발해 벽 충돌까지 달린다(임시 조종). 센서·신경망·진화는 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
 
 ## 기술 스택
 

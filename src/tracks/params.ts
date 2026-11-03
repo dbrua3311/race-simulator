@@ -11,7 +11,7 @@ export const TRACK = {
   /** 서로 다른 구간의 도로 가장자리 사이 최소 간격 (m) */
   wallGap: 8,
   /** 기준 반지름 (m). 트랙 전체 크기를 정한다 */
-  baseRadius: 150,
+  baseRadius: 215,
   /** 메인 직선 길이 (m). 출발선 뒤 behind m + 출발선 앞 나머지 */
   straightLength: 130,
   straightBehind: 105,
@@ -54,31 +54,31 @@ export interface DifficultyParams {
 
 export const DIFFICULTY: Record<Difficulty, DifficultyParams> = {
   easy: {
-    harmonics: [3, 4],
-    amplitude: 0.16,
+    harmonics: [5, 7],
+    amplitude: 0.2,
     decay: 0.5,
     minCurveRadius: 30,
-    lengthRange: [850, 1300],
+    lengthRange: [1150, 1900],
     sharpRadius: 30,
     sharpTurns: [0, 0],
     minDirectionChanges: 0,
   },
   medium: {
-    harmonics: [5, 7],
-    amplitude: 0.22,
+    harmonics: [8, 11],
+    amplitude: 0.3,
     decay: 0.5,
     minCurveRadius: 18,
-    lengthRange: [850, 1500],
+    lengthRange: [1200, 2100],
     sharpRadius: 30,
     sharpTurns: [1, 99],
     minDirectionChanges: 2,
   },
   hard: {
-    harmonics: [6, 9],
-    amplitude: 0.36,
+    harmonics: [10, 14],
+    amplitude: 0.4,
     decay: 0.45,
     minCurveRadius: 14,
-    lengthRange: [900, 1700],
+    lengthRange: [1250, 2300],
     sharpRadius: 22,
     sharpTurns: [3, 99],
     minDirectionChanges: 4,

@@ -302,6 +302,28 @@ select:disabled {
   font-size: 12px;
 }
 
+.overlay-time {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.overlay-left .overlay-label + .overlay-time,
+.overlay-left .overlay-value + .overlay-label {
+  margin-top: 4px;
+}
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--gold);
+  font-size: 120px;
+  font-weight: 800;
+  text-shadow: 0 0 40px rgba(242, 193, 78, 0.45);
+  pointer-events: none;
+}
+
 .overlay-label {
   color: var(--muted);
   font-size: 11px;
