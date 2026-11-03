@@ -481,3 +481,74 @@ select:disabled {
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+.overlay-bottom-right {
+  top: auto;
+  right: 14px;
+  bottom: 14px;
+}
+
+.legend {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  max-width: 360px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend i {
+  display: inline-block;
+  width: 12px;
+  height: 7px;
+  border-radius: 2px;
+}
+
+.legend b {
+  font-weight: 700;
+}
+
+.lg-gold {
+  background: var(--gold);
+  box-shadow: 0 0 6px rgba(242, 193, 78, 0.9);
+}
+
+.lg-select {
+  border: 2px solid var(--accent);
+}
+
+.lg-ghost {
+  border: 1px dashed #e6f0ff;
+  background: rgba(200, 225, 255, 0.4);
+}
+
+.lg-wall {
+  color: #ef6b6b;
+}
+
+.lg-brake {
+  color: #f59e42;
+}
+
+.lg-finish {
+  color: var(--ok);
+}
+
+.lg-safety {
+  color: #a0aab9;
+}
+
+.segmented.small button {
+  padding: 4px;
+  font-size: 12px;
+}
+
+.mt {
+  margin-top: 8px;
+}

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatSimTime } from '../app/format';
 import type { RunStats } from '../app/runStats';
-import type { GenerationRecord } from '../simulation/experiment';
+import type { GenerationRecord, Ghost } from '../simulation/experiment';
+import { GHOST_MODE_LABEL, type GhostMode } from '../visualization/ghost';
 import { END_REASON_LABEL } from '../simulation/types';
 import { Section } from './Panel';
 
@@ -10,11 +12,17 @@ interface Props {
   stats: RunStats | null;
   history: GenerationRecord[];
   auto: boolean;
+  ghost: Ghost | null;
+  ghostMode: GhostMode;
+  ghostGeneration: number | null;
+  onGhostChange(mode: GhostMode, generation: number | null): void;
 }
 
 const pct = (v: number | undefined) => (v === undefined ? '-' : `${(v * 100).toFixed(1)}%`);
+const diff = (d: number) => `${d >= 0 ? '+' : ''}${(d * 100).toFixed(1)}%p`;
 
-export function RightPanel({ generation, stats, history, auto }: Props) {
+export function RightPanel({ generation, stats, history, auto, ghost, ghostMode, ghostGeneration, onGhostChange }: Props) {
+  const [metric, setMetric] = useState<'progress' | 'fitness'>('progress');
   const counts = stats?.counts;
   const count = (v: number | undefined) => (v === undefined ? '-' : `${v}대`);
   const rows: [string, string][] = [
@@ -29,11 +37,12 @@ export function RightPanel({ generation, stats, history, auto }: Props) {
     ['브레이크 정지', count(counts?.brake)],
     ['안전 종료', count(counts?.safety)],
   ];
-  const chartData = history.map((r) => ({
-    generation: r.generation,
-    best: +(r.bestProgress * 100).toFixed(2),
-    average: +(r.averageProgress * 100).toFixed(2),
-  }));
+  const chartData = history.map((r) =>
+    metric === 'progress'
+      ? { generation: r.generation, best: +(r.bestProgress * 100).toFixed(2), average: +(r.averageProgress * 100).toFixed(2) }
+      : { generation: r.generation, best: +r.bestFitness.toFixed(2), average: +r.averageFitness.toFixed(2) },
+  );
+  const metricName = metric === 'progress' ? '진행률' : '적합도';
   const last = history.at(-1);
 
   return (
@@ -54,21 +63,28 @@ export function RightPanel({ generation, stats, history, auto }: Props) {
         )}
       </Section>
 
-      <Section title="세대별 성능 (진행률 %)">
+      <Section title="세대별 성능">
+        <div className="segmented small" role="group" aria-label="그래프 종류">
+          {(['progress', 'fitness'] as const).map((m) => (
+            <button key={m} type="button" aria-pressed={metric === m} className={metric === m ? 'active' : undefined} onClick={() => setMetric(m)}>
+              {m === 'progress' ? '진행률 (%)' : '적합도'}
+            </button>
+          ))}
+        </div>
         <div className="chart" data-testid="chart">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
               <CartesianGrid stroke="var(--line)" strokeDasharray="3 3" />
               <XAxis dataKey="generation" stroke="var(--muted)" fontSize={11} />
-              <YAxis domain={[0, 100]} stroke="var(--muted)" fontSize={11} />
+              <YAxis domain={metric === 'progress' ? [0, 100] : [0, 'auto']} stroke="var(--muted)" fontSize={11} />
               <Tooltip
                 contentStyle={{ background: 'var(--panel)', border: '1px solid var(--line)', fontSize: 12 }}
                 labelFormatter={(g) => `${g}세대`}
-                formatter={(v) => `${v}%`}
+                formatter={(v) => (metric === 'progress' ? `${v}%` : String(v))}
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line dataKey="best" name="최고 진행률" stroke="var(--gold)" dot={false} isAnimationActive={false} />
-              <Line dataKey="average" name="평균 진행률" stroke="var(--accent)" dot={false} isAnimationActive={false} />
+              <Line dataKey="best" name={`최고 ${metricName}`} stroke="var(--gold)" dot={false} isAnimationActive={false} />
+              <Line dataKey="average" name={`평균 ${metricName}`} stroke="var(--accent)" dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
           {chartData.length === 0 && <p className="chart-empty">아직 기록이 없습니다</p>}
@@ -103,7 +119,54 @@ export function RightPanel({ generation, stats, history, auto }: Props) {
       </Section>
 
       <Section title="고스트 비교">
-        <p className="muted">아직 기록이 없습니다</p>
+        <select
+          aria-label="고스트 비교 대상"
+          value={ghostMode}
+          onChange={(e) => {
+            const mode = e.target.value as GhostMode;
+            onGhostChange(mode, mode === 'generation' ? (ghostGeneration ?? history[0]?.generation ?? null) : ghostGeneration);
+          }}
+        >
+          {(Object.keys(GHOST_MODE_LABEL) as GhostMode[]).map((m) => (
+            <option key={m} value={m}>
+              {GHOST_MODE_LABEL[m]}
+            </option>
+          ))}
+        </select>
+        {ghostMode === 'generation' && history.length > 0 && (
+          <select
+            aria-label="비교할 세대"
+            className="mt"
+            value={ghostGeneration ?? ''}
+            onChange={(e) => onGhostChange('generation', Number(e.target.value))}
+          >
+            {history.map((r) => (
+              <option key={r.generation} value={r.generation}>
+                {r.generation}세대 1등 ({(r.bestProgress * 100).toFixed(1)}%)
+              </option>
+            ))}
+          </select>
+        )}
+        {ghost ? (
+          <dl className="info mt" data-testid="ghost-info">
+            <dt>고스트</dt>
+            <dd>
+              {ghost.generation}세대 1등 {ghost.carId}번
+            </dd>
+            <dt>그 기록</dt>
+            <dd>
+              {pct(ghost.progress)}
+              {ghost.finishTime !== null ? ` · 완주 ${formatSimTime(ghost.finishTime)}` : ''}
+            </dd>
+            <dt>지금 세대</dt>
+            <dd>
+              {stats ? `${pct(stats.bestProgress)} (${diff(stats.bestProgress - ghost.progress)})` : '-'}
+            </dd>
+          </dl>
+        ) : (
+          <p className="muted mt">{ghostMode === 'off' ? '고스트를 표시하지 않습니다' : '비교할 이전 세대 기록이 아직 없습니다'}</p>
+        )}
+        <p className="hint">고스트는 과거 주행 기록을 다시 보여 줄 뿐, 지금 자동차들의 주행·학습에는 영향을 주지 않습니다.</p>
       </Section>
     </aside>
   );

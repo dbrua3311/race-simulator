@@ -7,7 +7,10 @@ import { CAR_STRIDE, END_CODES, type Snapshot } from '../workers/protocol';
 import { drawCars } from '../visualization/drawCars';
 import { clear, drawMessage, drawTrack } from '../visualization/renderer';
 import { MIN_HIT_RADIUS, carScreenPositions, carsInRect, hitTest } from '../visualization/selection';
+import { drawGhostCar } from '../visualization/effects';
+import { ghostPose } from '../visualization/ghost';
 import { fitViewport, type Viewport } from '../visualization/viewport';
+import type { Ghost } from '../simulation/experiment';
 import type { Vec } from '../core/vec';
 
 const PADDING = 28;
@@ -31,6 +34,9 @@ interface Props {
   selection: number[];
   onToggle(id: number): void;
   onSelectMany(ids: number[]): void;
+  /** 비교용 고스트 (없으면 null) */
+  ghost: Ghost | null;
+  showGhost: boolean;
 }
 
 interface Hover {
@@ -47,12 +53,17 @@ export function TrackView(props: Props) {
   const viewRef = useRef<Viewport | null>(null);
   const dragRef = useRef<{ start: Vec; current: Vec; dragging: boolean } | null>(null);
   const selectionRef = useRef<number[]>(selection);
+  const ghostRef = useRef<{ ghost: Ghost | null; show: boolean }>({ ghost: props.ghost, show: props.showGhost });
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [hover, setHover] = useState<Hover | null>(null);
 
   useEffect(() => {
     selectionRef.current = selection;
   }, [selection]);
+
+  useEffect(() => {
+    ghostRef.current = { ghost: props.ghost, show: props.showGhost };
+  }, [props.ghost, props.showGhost]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -112,6 +123,12 @@ export function TrackView(props: Props) {
       ctx.drawImage(background, 0, 0);
       if (snapshot && view) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // 고스트는 실제 차들 아래에, 같은 시뮬레이션 시간으로 재생한다
+        const { ghost, show } = ghostRef.current;
+        if (ghost && show) {
+          const pose = ghostPose(ghost.samples, snapshot.tick * DT);
+          if (pose) drawGhostCar(ctx, view, pose.x, pose.y, pose.heading, pose.done);
+        }
         drawCars(ctx, snapshot, view, { selection: selectionRef.current, time });
         const drag = dragRef.current;
         if (drag?.dragging) drawDragRect(ctx, drag.start, drag.current);
@@ -222,6 +239,7 @@ export function TrackView(props: Props) {
           {hover.text}
         </div>
       )}
+      {generation !== null && <Legend ghost={!!props.ghost && props.showGhost} />}
       {track && (
         <div className="overlay overlay-bottom-left" data-testid="track-label">
           난이도 {DIFFICULTY_LABEL[track.difficulty]} · 시드 <span className="mono">{track.seed}</span>
@@ -242,4 +260,37 @@ function drawDragRect(ctx: CanvasRenderingContext2D, a: Vec, b: Vec) {
   ctx.fillRect(x, y, Math.abs(a.x - b.x), Math.abs(a.y - b.y));
   ctx.strokeRect(x + 0.5, y + 0.5, Math.abs(a.x - b.x), Math.abs(a.y - b.y));
   ctx.restore();
+}
+
+function Legend({ ghost }: { ghost: boolean }) {
+  return (
+    <div className="overlay overlay-bottom-right legend" data-testid="legend">
+      <span>
+        <i className="lg-gold" />
+        금색 챔피언
+      </span>
+      <span>
+        <i className="lg-select" />
+        선택
+      </span>
+      <span>
+        <b className="lg-wall">✕</b>벽 충돌
+      </span>
+      <span>
+        <b className="lg-brake">■</b>브레이크 정지
+      </span>
+      <span>
+        <b className="lg-finish">✓</b>완주
+      </span>
+      <span>
+        <b className="lg-safety">○</b>안전 종료
+      </span>
+      {ghost && (
+        <span>
+          <i className="lg-ghost" />
+          고스트
+        </span>
+      )}
+    </div>
+  );
 }

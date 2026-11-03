@@ -4,6 +4,7 @@
 
 import { CAR } from '../simulation/params';
 import { CAR_STRIDE, END_CODES, type Snapshot } from '../workers/protocol';
+import { drawGoldAura } from './effects';
 import { worldToScreen, type Viewport } from './viewport';
 
 export const GOLD = '#f2c14e';
@@ -33,6 +34,12 @@ export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view
     return snapshot.data[i * CAR_STRIDE + 4]! === 0 ? 1 : 0;
   };
   const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => priority(a) - priority(b));
+
+  // 금색 오라는 모든 차체 아래에 깐다
+  if (champion >= 0) {
+    const o = champion * CAR_STRIDE;
+    drawGoldAura(ctx, view, snapshot.data[o]!, snapshot.data[o + 1]!, snapshot.data[o + 2]!, options.time, snapshot.data[o + 4]! === 0);
+  }
 
   for (const i of order) {
     const o = i * CAR_STRIDE;
@@ -136,20 +143,42 @@ function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw) {
   ctx.fillRect(len * 0.08, -wid * 0.32, len * 0.2, wid * 0.64);
   ctx.restore();
 
-  // 벽 충돌 표시
-  if (car.endReason === 'wall') {
-    ctx.save();
-    ctx.strokeStyle = 'rgba(239, 107, 107, 0.9)';
-    ctx.lineWidth = 1.5;
-    const r = Math.max(3, wid * 0.6);
-    ctx.beginPath();
-    ctx.moveTo(p.x - r, p.y - r);
-    ctx.lineTo(p.x + r, p.y + r);
-    ctx.moveTo(p.x + r, p.y - r);
-    ctx.lineTo(p.x - r, p.y + r);
-    ctx.stroke();
-    ctx.restore();
+  drawEndMark(ctx, p.x, p.y, Math.max(3, wid * 0.6), car.endReason);
+}
+
+/** 종료 사유 표시: 벽 충돌 ✕(빨강), 브레이크 정지 ■(주황), 완주 ✓(초록), 안전 종료 ○(회색) */
+export function drawEndMark(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, reason: string | null) {
+  if (!reason) return;
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  switch (reason) {
+    case 'wall':
+      ctx.strokeStyle = 'rgba(239, 107, 107, 0.95)';
+      ctx.moveTo(x - r, y - r);
+      ctx.lineTo(x + r, y + r);
+      ctx.moveTo(x + r, y - r);
+      ctx.lineTo(x - r, y + r);
+      ctx.stroke();
+      break;
+    case 'brake':
+      ctx.fillStyle = 'rgba(245, 158, 66, 0.95)';
+      ctx.fillRect(x - r * 0.7, y - r * 0.7, r * 1.4, r * 1.4);
+      break;
+    case 'finish':
+      ctx.strokeStyle = 'rgba(74, 210, 149, 1)';
+      ctx.lineWidth = 2;
+      ctx.moveTo(x - r, y);
+      ctx.lineTo(x - r * 0.2, y + r * 0.8);
+      ctx.lineTo(x + r * 1.1, y - r * 0.9);
+      ctx.stroke();
+      break;
+    default:
+      ctx.strokeStyle = 'rgba(160, 170, 185, 0.9)';
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.stroke();
   }
+  ctx.restore();
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
