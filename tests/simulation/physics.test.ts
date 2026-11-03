@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAR, DT } from '../../src/simulation/params';
 import { stepPhysics } from '../../src/simulation/physics';
-import type { CarState } from '../../src/simulation/types';
-
-const car = (): CarState => ({
-  id: 1, slot: 0, x: 0, y: 0, heading: 0, speed: 0, steer: 0, throttle: 0,
-  trackIndex: 0, ended: false, endReason: null, endTick: null,
-});
+import { blankCar as car } from './helpers';
 
 describe('자동차 물리', () => {
   it('가속하면 최고 속도에 가까워지지만 넘지 않는다', () => {

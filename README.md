@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-**3단계(자동차 물리·렌더링) 완료.** 트랙을 만들고 50대가 동시에 출발해 벽 충돌까지 달린다(임시 조종). 센서·신경망·진화는 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
+**4단계(AI 주행) 완료.** 50대가 각자의 무작위 신경망(센서 5개 → 조향·가속/제동)으로 동시에 달리고, 진행률·완주·종료 사유를 판정한다. 진화(다음 세대)는 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
 
 ## 기술 스택
 

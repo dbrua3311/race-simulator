@@ -3,7 +3,7 @@ import { LeftPanel, type RunControls } from '../components/LeftPanel';
 import { RightPanel } from '../components/RightPanel';
 import { TrackView } from '../components/TrackView';
 import { gridSlots } from '../tracks/startGrid';
-import type { CarCounts } from '../workers/protocol';
+import { toRunStats, type RunStats } from './runStats';
 import { randomSeed } from './seed';
 import { createSimClient, type SimClient, type WorkerStatus } from './simClient';
 import { PHASE_LABEL, initialState, reducer, type Speed } from './state';
@@ -11,8 +11,9 @@ import { PHASE_LABEL, initialState, reducer, type Speed } from './state';
 export function App() {
   const [state, dispatch] = useReducer(reducer, undefined, () => initialState(randomSeed()));
   const [workerStatus, setWorkerStatus] = useState<WorkerStatus>({ kind: 'connecting' });
-  const [counts, setCounts] = useState<CarCounts | null>(null);
+  const [stats, setStats] = useState<RunStats | null>(null);
   const clientRef = useRef<SimClient | null>(null);
+  const lastStatsUpdate = useRef(0);
 
   useEffect(() => {
     const client = createSimClient({
@@ -21,7 +22,11 @@ export function App() {
         if (snapshot.status === 'running' || snapshot.status === 'paused' || snapshot.status === 'finished') {
           dispatch({ type: 'simStatus', status: snapshot.status, skipping: snapshot.skipping });
         }
-        setCounts((prev) => (prev && sameCounts(prev, snapshot.counts) ? prev : snapshot.counts));
+        // 통계 패널은 초당 5번만 다시 그린다 (상태가 바뀌는 순간은 바로)
+        const now = performance.now();
+        if (snapshot.status === 'running' && !snapshot.skipping && now - lastStatsUpdate.current < 200) return;
+        lastStatsUpdate.current = now;
+        setStats(toRunStats(snapshot));
       },
     });
     clientRef.current = client;
@@ -49,7 +54,7 @@ export function App() {
     start: () => {
       if (!state.track || state.phase !== 'trackSetup') return;
       dispatch({ type: 'startRun' });
-      setCounts(null);
+      setStats(null);
       clientRef.current?.setSpeed(state.speed);
       clientRef.current?.prepare(state.track, state.populationSize, `${state.track.seed}/1`);
     },
@@ -62,7 +67,7 @@ export function App() {
     },
     newGame: () => {
       clientRef.current?.reset();
-      setCounts(null);
+      setStats(null);
       dispatch({ type: 'newGame' });
     },
   };
@@ -91,16 +96,16 @@ export function App() {
           getSnapshot={getSnapshot}
           generation={state.phase === 'trackSetup' ? null : 1}
           countdown={state.phase === 'countdown' ? state.countdown : 0}
+          bestFinish={stats?.bestFinish ?? null}
+          runFinished={state.phase === 'finished'}
         />
-        <RightPanel generation={state.phase === 'trackSetup' ? null : 1} counts={counts} />
+        <RightPanel generation={state.phase === 'trackSetup' ? null : 1} stats={stats} />
       </main>
     </div>
   );
 }
 
-function sameCounts(a: CarCounts, b: CarCounts) {
-  return a.running === b.running && a.wall === b.wall && a.brake === b.brake && a.finish === b.finish && a.safety === b.safety;
-}
+
 
 function WorkerBadge({ status }: { status: WorkerStatus }) {
   switch (status.kind) {

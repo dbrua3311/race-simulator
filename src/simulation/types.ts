@@ -45,6 +45,25 @@ export interface CarState {
   trackIndex: number;
   ended: boolean;
   endReason: EndReason | null;
-  /** 종료된 스텝 번호 */
+  /** 종료된 스텝 번호. 완주한 차는 완주 시간 = endTick × DT */
   endTick: number | null;
+
+  // ── 진행률 (progress.ts) ──
+  /** 출발 위치의 트랙 좌표 (출발선 = 0, 그리드는 음수) */
+  startS: number;
+  /** 지금 트랙 좌표 (언랩, 바퀴를 넘어가도 이어짐) */
+  s: number;
+  /** 지금까지의 유효 진행 거리 (m, 출발 위치 기준) */
+  bestDistance: number;
+  /** bestDistance 를 마지막으로 늘린 스텝 (동률일 때 먼저 도달한 차 우선) */
+  bestTick: number;
+  /** 다음에 지나야 할 체크포인트 순번 */
+  nextGate: number;
+
+  // ── 종료 판정 보조 ──
+  /** 한 번이라도 MOVE_SPEED 를 넘었는가 */
+  hasMoved: boolean;
+  /** 진행 없음 판정용: 마지막으로 PROGRESS_STEP 이상 진행한 거리와 스텝 */
+  progressMark: number;
+  progressMarkTick: number;
 }

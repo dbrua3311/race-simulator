@@ -5,7 +5,10 @@
 // - 화면 갱신(스냅샷)은 약 60 Hz. 건너뛰기 중에도 진행 상황을 계속 보낸다.
 
 import { DT } from '../simulation/params';
-import { advance, createWorldFromSeed, type World } from '../simulation/world';
+import { createRng } from '../core/rng';
+import { randomGenome } from '../genetics/genome';
+import { progressOf } from '../simulation/progress';
+import { advance, createWorld, type World } from '../simulation/world';
 import type { Track } from '../tracks/types';
 import {
   CAR_STRIDE,
@@ -49,7 +52,7 @@ export class SimLoop {
         return;
       case 'prepare':
         this.track = command.track;
-        this.world = createWorldFromSeed(command.track, command.count, command.seed);
+        this.world = firstGeneration(command.track, command.count, command.seed);
         this.status = 'ready';
         this.skipping = false;
         this.postSnapshot();
@@ -138,6 +141,9 @@ export class SimLoop {
     if (!world) return;
     const data = new Float32Array(world.cars.length * CAR_STRIDE);
     const counts: CarCounts = { running: 0, wall: 0, brake: 0, finish: 0, safety: 0 };
+    let bestProgress = 0;
+    let progressSum = 0;
+    let bestFinish: Snapshot['bestFinish'] = null;
     world.cars.forEach((car, i) => {
       const o = i * CAR_STRIDE;
       data[o] = car.x;
@@ -145,6 +151,12 @@ export class SimLoop {
       data[o + 2] = car.heading;
       data[o + 3] = car.speed;
       data[o + 4] = END_CODES.indexOf(car.endReason);
+      const progress = progressOf(car, this.track!);
+      bestProgress = Math.max(bestProgress, progress);
+      progressSum += progress;
+      if (car.endReason === 'finish' && (!bestFinish || car.endTick! < bestFinish.tick)) {
+        bestFinish = { tick: car.endTick!, id: car.id };
+      }
       if (!car.ended) counts.running++;
       else if (car.endReason === 'wall' || car.endReason === 'brake' || car.endReason === 'finish') counts[car.endReason]++;
       else counts.safety++;
@@ -157,8 +169,18 @@ export class SimLoop {
       ids: world.cars.map((c) => c.id),
       data,
       counts,
+      bestProgress,
+      averageProgress: world.cars.length ? progressSum / world.cars.length : 0,
+      bestFinish,
     };
     this.lastPost = this.env.now();
     this.env.post(snapshot, [data.buffer]);
   }
+}
+
+/** 1세대: 무작위 유전자. 배치와 유전자 모두 seed 로 결정된다 (5단계에서 진화로 다음 세대를 만든다) */
+function firstGeneration(track: Track, count: number, seed: string): World {
+  const rng = createRng(`race-simulator/generation/${seed}`);
+  const genomes = Array.from({ length: count }, () => randomGenome(rng));
+  return createWorld(track, genomes, rng);
 }
