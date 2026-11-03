@@ -1,15 +1,31 @@
 import type { Dispatch } from 'react';
-import type { Action, AppState } from '../app/state';
+import { SPEEDS, type Action, type AppState, type Speed } from '../app/state';
 import { Field, Section } from './Panel';
 import { TrackSection } from './TrackSection';
 
-const SPEEDS = [1, 2, 5, 10] as const;
+export interface RunControls {
+  start(): void;
+  pause(): void;
+  resume(): void;
+  skip(): void;
+  setSpeed(speed: Speed): void;
+  newGame(): void;
+}
 
-// 트랙 영역만 동작한다. 나머지 조작부는 해당 단계에서 시뮬레이션과 연결한다.
-export function LeftPanel({ state, dispatch }: { state: AppState; dispatch: Dispatch<Action> }) {
+interface Props {
+  state: AppState;
+  dispatch: Dispatch<Action>;
+  controls: RunControls;
+}
+
+// 트랙·주행 영역이 동작한다. 진화·자동 학습·실험 저장은 해당 단계에서 연결한다.
+export function LeftPanel({ state, dispatch, controls }: Props) {
+  const { phase } = state;
+  const active = phase === 'running' || phase === 'paused';
+
   return (
     <aside className="panel panel-left" aria-label="설정 및 조작">
-      <TrackSection key={state.seed} state={state} dispatch={dispatch} />
+      <TrackSection key={state.seed} state={state} dispatch={dispatch} onNewGame={controls.newGame} />
 
       <Section title="진화 설정">
         <Field label="자동차 개체 수" value={`${state.populationSize}대`}>
@@ -30,30 +46,36 @@ export function LeftPanel({ state, dispatch }: { state: AppState; dispatch: Disp
       </Section>
 
       <Section title="주행">
-        {state.phase === 'ready' && <p className="notice">자동차 주행은 다음 단계(3단계)에서 연결됩니다.</p>}
+        <p className="notice">
+          지금은 물리 확인용 임시 조종으로 달립니다. 센서와 신경망 운전은 4단계에서 연결됩니다.
+        </p>
+        {phase === 'finished' && (
+          <p className="notice">모든 자동차가 주행을 마쳤습니다. 다음 세대 생성은 5단계에서 연결됩니다.</p>
+        )}
         <div className="grid-2">
-          <button
-            type="button"
-            className="btn-primary"
-            disabled={!state.track || state.trackLocked}
-            onClick={() => dispatch({ type: 'startRun' })}
-          >
+          <button type="button" className="btn-primary" disabled={!state.track || phase !== 'trackSetup'} onClick={controls.start}>
             주행 시작
           </button>
-          <button type="button" disabled>
+          <button type="button" disabled={phase !== 'running' || state.skipping} onClick={controls.pause}>
             일시정지
           </button>
-          <button type="button" disabled>
+          <button type="button" disabled={phase !== 'paused'} onClick={controls.resume}>
             주행 재개
           </button>
-          <button type="button" disabled>
+          <button type="button" disabled={!active || state.skipping} onClick={controls.skip}>
             건너뛰기
           </button>
         </div>
         <Field label="배속">
           <div className="segmented" role="group" aria-label="배속">
             {SPEEDS.map((s) => (
-              <button key={s} type="button" disabled className={s === 1 ? 'active' : undefined}>
+              <button
+                key={s}
+                type="button"
+                aria-pressed={state.speed === s}
+                className={state.speed === s ? 'active' : undefined}
+                onClick={() => controls.setSpeed(s)}
+              >
                 {s}배속
               </button>
             ))}

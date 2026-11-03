@@ -6,12 +6,21 @@ import { measureTrack, type TrackMetrics } from '../tracks/metrics';
 import { DIFFICULTY } from '../tracks/params';
 import type { Difficulty, Track } from '../tracks/types';
 
-export type Phase = 'trackSetup' | 'ready';
+export type Phase = 'trackSetup' | 'countdown' | 'running' | 'paused' | 'finished';
 
 export const PHASE_LABEL: Record<Phase, string> = {
   trackSetup: '트랙 선택',
-  ready: '주행 준비',
+  countdown: '출발 카운트다운',
+  running: '주행 중',
+  paused: '일시정지',
+  finished: '주행 종료',
 };
+
+export const SPEEDS = [1, 2, 5, 10] as const;
+export type Speed = (typeof SPEEDS)[number];
+
+/** 출발 카운트다운 (초). 실제 시간이며 시뮬레이션 시간에는 들어가지 않는다 */
+export const COUNTDOWN_SECONDS = 3;
 
 export const DEFAULT_POPULATION = 50;
 
@@ -25,12 +34,20 @@ export interface AppState {
   /** 첫 주행이 시작되면 true. 새 판을 시작할 때만 false 로 돌아간다 */
   trackLocked: boolean;
   populationSize: number;
+  speed: Speed;
+  /** 카운트다운 남은 초 */
+  countdown: number;
+  /** 건너뛰기 계산 중 */
+  skipping: boolean;
 }
 
 export type Action =
   | { type: 'generateTrack'; seed: string }
   | { type: 'setDifficulty'; difficulty: Difficulty }
   | { type: 'startRun' }
+  | { type: 'countdownTick' }
+  | { type: 'setSpeed'; speed: Speed }
+  | { type: 'simStatus'; status: 'running' | 'paused' | 'finished'; skipping: boolean }
   | { type: 'newGame' };
 
 export function initialState(seed: string, difficulty: Difficulty = 'medium'): AppState {
@@ -44,6 +61,9 @@ export function initialState(seed: string, difficulty: Difficulty = 'medium'): A
       trackError: null,
       trackLocked: false,
       populationSize: DEFAULT_POPULATION,
+      speed: 1,
+      countdown: 0,
+      skipping: false,
     },
     difficulty,
     seed,
@@ -59,10 +79,21 @@ export function reducer(state: AppState, action: Action): AppState {
       if (state.trackLocked || action.difficulty === state.difficulty) return state;
       return withTrack(state, action.difficulty, state.seed);
     case 'startRun':
-      if (!state.track || state.trackLocked) return state;
-      return { ...state, trackLocked: true, phase: 'ready' };
+      // 첫 주행이 시작되는 순간 트랙을 고정한다
+      if (!state.track || state.phase !== 'trackSetup') return state;
+      return { ...state, trackLocked: true, phase: 'countdown', countdown: COUNTDOWN_SECONDS, skipping: false };
+    case 'countdownTick':
+      if (state.phase !== 'countdown') return state;
+      return state.countdown > 1 ? { ...state, countdown: state.countdown - 1 } : { ...state, countdown: 0, phase: 'running' };
+    case 'setSpeed':
+      return { ...state, speed: action.speed };
+    case 'simStatus':
+      // 워커가 알려 주는 실제 주행 상태를 따른다 (카운트다운 중에 온 이전 상태는 무시)
+      if (state.phase === 'trackSetup' || state.phase === 'countdown') return state;
+      if (state.phase === action.status && state.skipping === action.skipping) return state;
+      return { ...state, phase: action.status, skipping: action.skipping };
     case 'newGame':
-      return { ...state, trackLocked: false, phase: 'trackSetup' };
+      return { ...state, trackLocked: false, phase: 'trackSetup', countdown: 0, skipping: false };
   }
 }
 
