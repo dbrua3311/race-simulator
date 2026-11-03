@@ -72,6 +72,9 @@ test('주행 중 저장 → 불러오면 그 시점에서 일시정지, 재개�
   await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: '일시정지' }).click();
+  await expect(page.getByTestId('phase')).toHaveText('일시정지');
+  // 화면의 시간 표시가 마지막 스텝까지 갱신된 뒤 읽는다
+  await page.waitForTimeout(300);
   const time = await page.getByTestId('sim-time').textContent();
   const path = info.outputPath('running.race.json');
   await save(page, path);

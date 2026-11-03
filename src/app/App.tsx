@@ -8,6 +8,7 @@ import { downloadText } from '../persistence/download';
 import { createSaveFile, saveFileName } from '../persistence/saveFile';
 import { parseSaveFile, SaveFileError } from '../persistence/validate';
 import { gridSlots } from '../tracks/startGrid';
+import { pickGhost } from '../visualization/ghost';
 import { toRunStats, type RunStats } from './runStats';
 import { randomSeed } from './seed';
 import { createSimClient, type SimClient, type WorkerStatus } from './simClient';
@@ -184,6 +185,10 @@ export function App() {
   }
 
   const showGeneration = state.phase !== 'trackSetup';
+  const ghost = useMemo(
+    () => pickGhost(state.ghosts, state.ghostMode, state.generation, state.ghostGeneration),
+    [state.ghosts, state.ghostMode, state.generation, state.ghostGeneration],
+  );
   const runFinished = state.phase === 'parentSelection';
 
   return (
@@ -222,8 +227,20 @@ export function App() {
           selection={state.selection}
           onToggle={(id) => dispatch({ type: 'toggleSelect', id })}
           onSelectMany={(ids) => dispatch({ type: 'addSelection', ids })}
+          ghost={ghost}
+          // 수동 부모 선택 단계에서는 고스트를 숨긴다 (원문 44절)
+          showGhost={state.phase !== 'parentSelection' && state.phase !== 'trackSetup'}
         />
-        <RightPanel generation={showGeneration ? state.generation : null} stats={stats} history={state.history} auto={state.auto} />
+        <RightPanel
+          generation={showGeneration ? state.generation : null}
+          stats={stats}
+          history={state.history}
+          auto={state.auto}
+          ghost={ghost}
+          ghostMode={state.ghostMode}
+          ghostGeneration={state.ghostGeneration}
+          onGhostChange={(mode, generation) => dispatch({ type: 'setGhost', mode, generation })}
+        />
       </main>
     </div>
   );
