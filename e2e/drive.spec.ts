@@ -13,6 +13,7 @@ test('카운트다운 뒤 50대가 동시에 출발하고, 일시정지·재개�
   await startRun(page, 'DRIVE1');
   await expect(page.getByTestId('countdown')).toHaveText('3');
   await expect(page.getByTestId('stat-주행 중')).toHaveText('50대');
+  await expect(page.getByTestId('finish-record')).toHaveText('--:--.--');
   await page.screenshot({ path: 'test-results/drive-grid.png' });
 
   await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
@@ -35,6 +36,8 @@ test('카운트다운 뒤 50대가 동시에 출발하고, 일시정지·재개�
   await page.getByRole('button', { name: '건너뛰기' }).click();
   await expect(page.getByTestId('phase')).toHaveText('주행 종료', { timeout: 20000 });
   await expect(page.getByTestId('stat-주행 중')).toHaveText('0대');
+  await expect(page.getByTestId('stat-최고 진행률')).toHaveText(/^\d+\.\d%$/);
+  await expect(page.getByTestId('finish-record')).toHaveText(/^(완주 기록 없음|\d\d:\d\d\.\d\d)$/);
   await page.screenshot({ path: 'test-results/drive-finished.png' });
 });
 
@@ -44,6 +47,8 @@ test('같은 트랙·같은 판은 몇 배속으로 보든 같은 결과로 끝�
     return {
       time: await simTime(page),
       wall: await page.getByTestId('stat-벽 충돌').textContent(),
+      best: await page.getByTestId('stat-최고 진행률').textContent(),
+      average: await page.getByTestId('stat-평균 진행률').textContent(),
       safety: await page.getByTestId('stat-안전 종료').textContent(),
       canvas: await page.getByTestId('track-canvas').evaluate((c) => (c as HTMLCanvasElement).toDataURL()),
     };

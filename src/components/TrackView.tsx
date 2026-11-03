@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatSimTime } from '../app/format';
+import { finishRecordText, formatSimTime } from '../app/format';
 import { DT } from '../simulation/params';
 import { DIFFICULTY_LABEL, type GridSlot, type Track } from '../tracks/types';
 import type { Snapshot } from '../workers/protocol';
@@ -17,9 +17,13 @@ interface Props {
   getSnapshot: () => Snapshot | null;
   generation: number | null;
   countdown: number;
+  /** 이번 세대 가장 빠른 완주 */
+  bestFinish: { tick: number; id: number } | null;
+  /** 이번 세대 주행이 모두 끝났는가 */
+  runFinished: boolean;
 }
 
-export function TrackView({ track, slots, error, getSnapshot, generation, countdown }: Props) {
+export function TrackView({ track, slots, error, getSnapshot, generation, countdown, bestFinish, runFinished }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
@@ -103,7 +107,10 @@ export function TrackView({ track, slots, error, getSnapshot, generation, countd
       </div>
       <div className="overlay overlay-right">
         <span className="overlay-label">최고 완주 기록</span>
-        <span className="overlay-value mono">--:--.--</span>
+        <span className="overlay-value mono" data-testid="finish-record">
+          {finishRecordText(bestFinish, runFinished)}
+        </span>
+        {bestFinish && <span className="overlay-label">{bestFinish.id}번 자동차</span>}
       </div>
       {countdown > 0 && (
         <div className="countdown" data-testid="countdown">

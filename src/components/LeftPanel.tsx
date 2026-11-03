@@ -46,9 +46,7 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
       </Section>
 
       <Section title="주행">
-        <p className="notice">
-          지금은 물리 확인용 임시 조종으로 달립니다. 센서와 신경망 운전은 4단계에서 연결됩니다.
-        </p>
+        <p className="notice">1세대는 무작위 신경망으로 달립니다. 진화(다음 세대)는 5단계에서 연결됩니다.</p>
         {phase === 'finished' && (
           <p className="notice">모든 자동차가 주행을 마쳤습니다. 다음 세대 생성은 5단계에서 연결됩니다.</p>
         )}

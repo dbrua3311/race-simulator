@@ -1,21 +1,23 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import type { CarCounts } from '../workers/protocol';
+import type { RunStats } from '../app/runStats';
 import { Section } from './Panel';
 
 const EMPTY_HISTORY: { generation: number; best: number; average: number }[] = [];
 
 interface Props {
   generation: number | null;
-  counts: CarCounts | null;
+  stats: RunStats | null;
 }
 
-export function RightPanel({ generation, counts }: Props) {
+export function RightPanel({ generation, stats }: Props) {
+  const counts = stats?.counts;
   const count = (v: number | undefined) => (v === undefined ? '-' : `${v}대`);
-  const stats: [string, string][] = [
+  const percent = (v: number | undefined) => (v === undefined ? '-' : `${(v * 100).toFixed(1)}%`);
+  const rows: [string, string][] = [
     ['현재 세대', generation === null ? '-' : `${generation}세대`],
     ['주행 중', count(counts?.running)],
-    ['최고 진행률', '-'],
-    ['평균 진행률', '-'],
+    ['최고 진행률', percent(stats?.bestProgress)],
+    ['평균 진행률', percent(stats?.averageProgress)],
     ['최고 적합도', '-'],
     ['평균 적합도', '-'],
     ['완주', count(counts?.finish)],
@@ -28,7 +30,7 @@ export function RightPanel({ generation, counts }: Props) {
     <aside className="panel panel-right" aria-label="통계 및 분석">
       <Section title="현재 세대 통계">
         <dl className="stats">
-          {stats.map(([label, value]) => (
+          {rows.map(([label, value]) => (
             <div key={label} className="stat">
               <dt>{label}</dt>
               <dd data-testid={`stat-${label}`}>{value}</dd>

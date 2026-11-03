@@ -3,7 +3,7 @@
 import type { Track } from '../tracks/types';
 import type { EndReason } from '../simulation/types';
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export type SimStatus = 'idle' | 'ready' | 'running' | 'paused' | 'finished';
 
@@ -44,6 +44,11 @@ export interface Snapshot {
   /** 차마다 CAR_STRIDE 개 값 */
   data: Float32Array;
   counts: CarCounts;
+  /** 유효 진행률 (0 ~ 1) 최고·평균 */
+  bestProgress: number;
+  averageProgress: number;
+  /** 이번 세대 가장 빠른 완주 (시뮬레이션 스텝) */
+  bestFinish: { tick: number; id: number } | null;
 }
 
 export type WorkerEvent = { type: 'pong'; id: number; protocolVersion: number } | Snapshot;
