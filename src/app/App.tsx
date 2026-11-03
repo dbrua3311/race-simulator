@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useReducer, useState } from 'react';
 import { LeftPanel } from '../components/LeftPanel';
 import { RightPanel } from '../components/RightPanel';
 import { TrackView } from '../components/TrackView';
+import { gridSlots } from '../tracks/startGrid';
+import { randomSeed } from './seed';
 import { connectSimWorker, type WorkerStatus } from './simClient';
+import { PHASE_LABEL, initialState, reducer } from './state';
 
 export function App() {
+  const [state, dispatch] = useReducer(reducer, undefined, () => initialState(randomSeed()));
   const [workerStatus, setWorkerStatus] = useState<WorkerStatus>({ kind: 'connecting' });
 
   useEffect(() => connectSimWorker(setWorkerStatus), []);
+
+  const slots = useMemo(
+    () => (state.track ? gridSlots(state.track, state.populationSize) : []),
+    [state.track, state.populationSize],
+  );
 
   return (
     <div className="app">
@@ -17,13 +26,16 @@ export function App() {
           <h1>Race Simulator</h1>
         </div>
         <div className="topbar-status">
-          <span className="chip">트랙 선택</span>
+          <span className="chip" data-testid="phase">
+            {PHASE_LABEL[state.phase]}
+          </span>
+          {state.trackLocked && <span className="chip chip-gold">트랙 고정됨</span>}
           <WorkerBadge status={workerStatus} />
         </div>
       </header>
       <main className="layout">
-        <LeftPanel />
-        <TrackView />
+        <LeftPanel state={state} dispatch={dispatch} />
+        <TrackView track={state.track} slots={slots} error={state.trackError} />
         <RightPanel />
       </main>
     </div>

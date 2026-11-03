@@ -90,6 +90,11 @@ select {
   border-color: rgba(74, 210, 149, 0.35);
 }
 
+.chip-gold {
+  color: var(--gold);
+  border-color: rgba(242, 193, 78, 0.35);
+}
+
 .chip-error {
   color: var(--error);
   border-color: rgba(239, 107, 107, 0.35);
@@ -120,7 +125,7 @@ select {
 }
 
 .notice {
-  margin: 0 0 12px;
+  margin: 10px 0;
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(60, 200, 216, 0.08);
@@ -287,6 +292,16 @@ select:disabled {
   align-items: flex-end;
 }
 
+.overlay-bottom-left {
+  top: auto;
+  bottom: 14px;
+  left: 14px;
+  flex-direction: row;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .overlay-label {
   color: var(--muted);
   font-size: 11px;
@@ -351,4 +366,20 @@ select:disabled {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
+}
+
+.track-info {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.error {
+  margin: 8px 0 0;
+  color: var(--error);
+  font-size: 12px;
+}
+
+.notice + .btn-block {
+  margin-top: 0;
 }

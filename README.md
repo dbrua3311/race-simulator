@@ -8,7 +8,7 @@
 
 ## 현재 상태
 
-**1단계(프로젝트 기본 환경) 완료.** 3단 화면 뼈대만 있고 시뮬레이션 기능은 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
+**2단계(트랙 시스템) 완료.** 난이도·시드로 트랙을 만들고 미리 볼 수 있다. 자동차·진화 기능은 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
 
 ## 기술 스택
 
@@ -21,7 +21,7 @@ Node.js 26 (`.nvmrc`) 필요.
 ```bash
 npm install
 npm run dev        # 개발 서버 → http://localhost:5173
-npm test           # 단위 테스트 (Vitest)
+npm test           # 단위 테스트 (Vitest). 트랙 대량 검사: TRACK_SEEDS=1000 npm test
 npm run lint       # ESLint
 npm run typecheck  # 타입 검사
 npm run build      # 배포용 빌드
