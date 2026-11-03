@@ -55,6 +55,7 @@ export function followCenterline(track: Track, speed = 12, lookAhead = 6): Contr
 export function only(world: World, k: number): World {
   return {
     tick: 0,
+    brain: world.brain,
     cars: [clone(world.cars[k]!)],
     genomes: [clone(world.genomes[k]!)],
     trails: [clone(world.trails[k]!)],

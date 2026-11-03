@@ -3,6 +3,8 @@
 
 import { nextUint32, type RngState } from '../core/rng';
 import { forward, type Genome } from '../genetics/network';
+import type { Brain } from '../genetics/params';
+import { sequenceControl } from '../genetics/sequence';
 import { gridSlots } from '../tracks/startGrid';
 import type { Track } from '../tracks/types';
 import { hitsWall, nearestIndex } from './collision';
@@ -25,7 +27,9 @@ export interface World {
   /** 지금까지 계산한 스텝 수. 시뮬레이션 시간 = tick × DT */
   tick: number;
   cars: CarState[];
-  /** cars[i] 의 유전자(신경망 가중치) */
+  /** 운전 방식: 신경망(센서로 보고) / 조작 순서(외워서) */
+  brain: Brain;
+  /** cars[i] 의 유전자 (신경망 가중치, 또는 조작 순서) */
   genomes: Genome[];
   /** cars[i] 의 주행 궤적: TRAIL_EVERY 스텝마다 [x, y, heading, speed] 를 이어 붙인다 (고스트용) */
   trails: number[][];
@@ -43,7 +47,17 @@ export const networkController =
     return { steer: steer!, throttle: throttle! };
   };
 
+/** 조작 순서: 센서는 쓰지 않고 출발점에서 온 거리(가장 멀리 간 거리)에 맞춰 외운 조작을 한다 */
+export const sequenceController =
+  (world: World): Controller =>
+  (index, car) =>
+    sequenceControl(world.genomes[index]!, car.bestDistance);
+
+export const defaultController = (world: World): Controller =>
+  world.brain === 'sequence' ? sequenceController(world) : networkController(world);
+
 export interface WorldOptions {
+  brain?: Brain;
   /** genomes[0] 이 금색 챔피언이면 그 차가 설 자리 (직전 세대 1등의 출발 자리). 나머지는 무작위 */
   championSlot?: number | null;
 }
@@ -95,6 +109,7 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
   return {
     tick: 0,
     cars,
+    brain: options.brain ?? 'network',
     genomes: genomes.map((g) => [...g]),
     trails: cars.map((c) => [c.x, c.y, c.heading, 0]),
     finished: false,
@@ -113,7 +128,7 @@ export function finishOffset(slots: readonly { s: number }[]): number {
 const sensorBuffer: number[] = [];
 
 /** 한 스텝(DT) 진행. 종료된 차는 위치·방향을 그대로 유지한다 */
-export function stepWorld(world: World, track: Track, controller: Controller = networkController(world)) {
+export function stepWorld(world: World, track: Track, controller: Controller = defaultController(world)) {
   if (world.finished) return;
   const grid = wallGrid(track);
   world.tick++;
@@ -154,7 +169,7 @@ export function stepWorld(world: World, track: Track, controller: Controller = n
 
 /** steps 스텝 진행 (도중에 모두 종료되면 멈춘다). 실제로 진행한 스텝 수를 돌려준다 */
 export function advance(world: World, track: Track, steps: number, controller?: Controller): number {
-  const control = controller ?? networkController(world);
+  const control = controller ?? defaultController(world);
   let done = 0;
   while (done < steps && !world.finished) {
     stepWorld(world, track, control);

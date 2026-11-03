@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { LeftPanel, type RunControls } from '../components/LeftPanel';
 import { RightPanel } from '../components/RightPanel';
 import { TrackView } from '../components/TrackView';
-import type { GaSettings } from '../genetics/params';
+import { MIN_PARENTS, type GaSettings } from '../genetics/params';
 import { genomeFile, historyToCsv } from '../persistence/csv';
 import { downloadText } from '../persistence/download';
 import { createSaveFile, saveFileName } from '../persistence/saveFile';
@@ -113,7 +113,7 @@ export function App() {
       client()?.updateSettings(settings);
     },
     confirmParents: () => {
-      if (state.phase !== 'parentSelection' || state.selection.length < 2) return;
+      if (state.phase !== 'parentSelection' || state.selection.length < MIN_PARENTS) return;
       client()?.confirmParents(state.generation, state.selection);
       dispatch({ type: 'confirmParents' });
     },

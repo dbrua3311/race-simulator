@@ -90,3 +90,24 @@ test('자동 학습: 입력 없이 세대가 늘고, 정지하면 선택창 없�
     .toBeGreaterThan(Number(generation));
   await page.getByRole('button', { name: '자동 학습 정지' }).click();
 });
+
+test('조작 순서 방식: 부모 1대만 골라도 다음 세대로 넘어간다', async ({ page }) => {
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto('/');
+  await page.getByLabel('시드', { exact: true }).fill('SEQ1');
+  await page.getByRole('button', { name: '시드로 생성' }).click();
+  await page.getByLabel('운전 방식').selectOption('sequence');
+  await page.getByRole('button', { name: '주행 시작' }).click();
+  await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: 'test-results/sequence-gen1.png' });
+  await page.getByRole('button', { name: '건너뛰기' }).click();
+  await expect(page.getByTestId('phase')).toHaveText('부모 선택', { timeout: 30000 });
+
+  const box = (await page.getByTestId('track-canvas').boundingBox())!;
+  const positions = await cars(page);
+  await page.mouse.click(box.x + positions[0]!.x, box.y + positions[0]!.y);
+  await expect(page.getByTestId('selection-count')).toHaveText('선택 1대');
+  await page.getByRole('button', { name: '결정완료' }).click();
+  await expect(page.getByTestId('generation')).toHaveText('2');
+});

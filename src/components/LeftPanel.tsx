@@ -1,6 +1,6 @@
 import type { Dispatch } from 'react';
 import { SPEEDS, type Action, type AppState, type Speed } from '../app/state';
-import { MIN_PARENTS, POPULATION_RANGE, type GaSettings } from '../genetics/params';
+import { BRAIN_LABEL, MIN_PARENTS, POPULATION_RANGE, type Brain, type GaSettings } from '../genetics/params';
 import { ExperimentSection } from './ExperimentSection';
 import { Field, Section } from './Panel';
 import { TrackSection } from './TrackSection';
@@ -44,8 +44,8 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
       {phase === 'parentSelection' && !auto && (
         <Section title="부모 선택">
           <p className="notice">
-            트랙 위 자동차를 클릭하거나 드래그해서 다음 세대의 부모를 고르세요 ({MIN_PARENTS}대 이상). 1등은 금색
-            챔피언으로 따로 보존됩니다.
+            트랙 위 자동차를 클릭하거나 드래그해서 다음 세대의 부모를 고르세요 ({MIN_PARENTS}대 이상). 1대만 고르면
+            모두가 그 차를 조금씩 다르게 따라 하고, 여러 대면 섞기도 합니다. 1등은 금색 챔피언으로 따로 보존됩니다.
           </p>
           <p className="selection-count" data-testid="selection-count">
             선택 {state.selection.length}대
@@ -70,6 +70,23 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
       )}
 
       <Section title="진화 설정">
+        <Field label="운전 방식">
+          <select
+            aria-label="운전 방식"
+            value={settings.brain}
+            disabled={auto || phase === 'countdown'}
+            onChange={(e) => set({ brain: e.target.value as Brain })}
+          >
+            {(Object.keys(BRAIN_LABEL) as Brain[]).map((b) => (
+              <option key={b} value={b}>
+                {BRAIN_LABEL[b]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {phase !== 'trackSetup' && (
+          <p className="hint">운전 방식은 새 판 시작이나 학습 초기화 때 적용됩니다.</p>
+        )}
         <Field label="자동차 개체 수" value={`${settings.populationSize}대`}>
           <input
             type="range"

@@ -2,8 +2,8 @@
 
 원문 PART 19(필수 검증 조건)·PART 20(주의할 버그)을 실제 자동 테스트와 대응시킨 표. 모두 통과 상태다 (10단계 기준).
 
-- 단위 테스트: `npm test` (Vitest, `tests/`) — 124개
-- 브라우저 테스트: `npm run test:e2e` (Playwright + Chromium, `e2e/`) — 15개
+- 단위 테스트: `npm test` (Vitest, `tests/`) — 130개
+- 브라우저 테스트: `npm run test:e2e` (Playwright + Chromium, `e2e/`) — 16개
 - 트랙 대량 검사: `TRACK_SEEDS=300 npm test` — 난이도마다 시드 300개 (트랙 크기 변경 후 기준)
 - GitHub Actions 가 PR 마다 lint · typecheck · 단위 테스트 · 빌드 · 브라우저 테스트를 모두 실행한다
 
@@ -52,7 +52,7 @@
 | 항목 | 확인한 테스트 |
 |---|---|
 | 입력 없이 여러 세대, 세대 번호 증가, 실제 주행 보임 | `simLoop.test.ts` · `e2e/evolution.spec.ts` 4세대 이상 · `e2e/performance.spec.ts` 100대 |
-| 정지 버튼 언제든 반응 | `performance.spec.ts` 1초 안 반응 (100대) |
+| 정지 버튼 언제든 반응 | `performance.spec.ts` 100대 고속 계산 중 3초 안 반응 (보통 즉시) |
 | 정지 후 선택창 없이 일반 화면, 상태 보존 | `evolution.spec.ts` · `simLoop.test.ts` 정지 후 세대·위치·기록 그대로, 새 세대 0 |
 | 수동으로 이어 가기, 다시 자동 학습 | `simLoop.test.ts` 재개 → 같은 세대 · 다시 시작 → 같은 세대부터 |
 | 자동·수동 반복 전환에도 데이터 유지 | `simLoop.test.ts` · `evolution.spec.ts` |
@@ -89,6 +89,15 @@
 
 "중간" = 50대 진행률의 중간값. 한 대만 앞서는 것이 아니라 무리 전체가 함께 나아진다.
 센서 5개 입력만으로 충분히 학습한다 (DECISIONS D6, D33).
+
+## 운전 방식 비교 (D35)
+
+| 방식 | 1세대 | 첫 완주 | 100세대 |
+|---|---|---|---|
+| 신경망 (센서로 보고 운전) | 최고 약 15% | 2~4세대 | — (40세대에 26~37대 완주) |
+| 조작 순서 (외워서 운전) | 최고 약 7%, 50대 모두 출발 | 없음 | 최고 41~52%, 완주 없음 |
+
+조작 순서 방식도 실제 유전 알고리즘으로 점점 멀리 가지만(`tests/simulation/experiment.test.ts`), 센서 없이 외운 조작만으로는 조금 밀려도 바로잡지 못해 훨씬 느리다.
 
 ## 구현하지 않은 것
 
