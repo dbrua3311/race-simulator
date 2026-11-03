@@ -13,6 +13,7 @@ import {
   MOVE_SPEED,
   NO_PROGRESS_TIME,
   PROGRESS_STEP,
+  TRAIL_EVERY,
 } from './params';
 import { stepPhysics } from './physics';
 import { localS, updateProgress } from './progress';
@@ -25,6 +26,8 @@ export interface World {
   cars: CarState[];
   /** cars[i] 의 유전자(신경망 가중치) */
   genomes: Genome[];
+  /** cars[i] 의 주행 궤적: TRAIL_EVERY 스텝마다 [x, y, heading, speed] 를 이어 붙인다 (고스트용) */
+  trails: number[][];
   /** 모든 차가 종료되었는가 */
   finished: boolean;
 }
@@ -39,10 +42,21 @@ export const networkController =
     return { steer: steer!, throttle: throttle! };
   };
 
+export interface WorldOptions {
+  /** genomes[0] 이 금색 챔피언이면 그 차가 설 자리 (직전 세대 1등의 출발 자리). 나머지는 무작위 */
+  championSlot?: number | null;
+}
+
 /** 유전자마다 차 한 대를 출발 그리드에 무작위로 배치한다 (배치는 rng 로 결정 → 재현 가능) */
-export function createWorld(track: Track, genomes: Genome[], rng: RngState): World {
+export function createWorld(track: Track, genomes: Genome[], rng: RngState, options: WorldOptions = {}): World {
   const slots = gridSlots(track, genomes.length);
-  const order = shuffledIndices(genomes.length, rng);
+  const championSlot = options.championSlot ?? null;
+  const hasChampion = championSlot !== null && championSlot < genomes.length;
+  let order: number[];
+  if (hasChampion) {
+    const rest = shuffledIndices(genomes.length - 1, rng).map((k) => (k >= championSlot ? k + 1 : k));
+    order = [championSlot, ...rest];
+  } else order = shuffledIndices(genomes.length, rng);
   const n = track.center.length;
   const cars: CarState[] = order.map((slotId, i) => {
     const slot = slots[slotId]!;
@@ -53,6 +67,7 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState): Wor
     return {
       id: i + 1,
       slot: slotId,
+      champion: hasChampion && i === 0,
       x: slot.position.x,
       y: slot.position.y,
       heading: slot.heading,
@@ -73,7 +88,13 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState): Wor
       progressMarkTick: 0,
     };
   });
-  return { tick: 0, cars, genomes: genomes.map((g) => [...g]), finished: false };
+  return {
+    tick: 0,
+    cars,
+    genomes: genomes.map((g) => [...g]),
+    trails: cars.map((c) => [c.x, c.y, c.heading, 0]),
+    finished: false,
+  };
 }
 
 const sensorBuffer: number[] = [];
@@ -98,6 +119,7 @@ export function stepWorld(world: World, track: Track, controller: Controller = n
       continue;
     }
     car.trackIndex = nearestIndex(track, car.trackIndex, car);
+    if (tick % TRAIL_EVERY === 0) world.trails[i]!.push(car.x, car.y, car.heading, car.speed);
     const lapDone = updateProgress(car, track, tick);
     if (car.bestDistance >= car.progressMark + PROGRESS_STEP) {
       car.progressMark = car.bestDistance;
@@ -111,6 +133,8 @@ export function stepWorld(world: World, track: Track, controller: Controller = n
     else if ((tick - car.progressMarkTick) * DT >= NO_PROGRESS_TIME) end(car, tick, 'noProgress');
     else if (tick * DT >= MAX_RUN_TIME) end(car, tick, 'timeLimit');
     else running++;
+    // 종료된 순간의 위치도 궤적 끝에 남긴다
+    if (car.ended && tick % TRAIL_EVERY !== 0) world.trails[i]!.push(car.x, car.y, car.heading, car.speed);
   }
   if (running === 0) world.finished = true;
 }

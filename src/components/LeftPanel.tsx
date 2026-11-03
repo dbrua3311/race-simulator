@@ -1,5 +1,6 @@
 import type { Dispatch } from 'react';
 import { SPEEDS, type Action, type AppState, type Speed } from '../app/state';
+import { MIN_PARENTS, POPULATION_RANGE, type GaSettings } from '../genetics/params';
 import { Field, Section } from './Panel';
 import { TrackSection } from './TrackSection';
 
@@ -9,6 +10,13 @@ export interface RunControls {
   resume(): void;
   skip(): void;
   setSpeed(speed: Speed): void;
+  setSettings(settings: GaSettings): void;
+  confirmParents(): void;
+  autoSelect(): void;
+  clearSelection(): void;
+  startAuto(): void;
+  stopAuto(): void;
+  resetLearning(): void;
   newGame(): void;
 }
 
@@ -18,49 +26,106 @@ interface Props {
   controls: RunControls;
 }
 
-// 트랙·주행 영역이 동작한다. 진화·자동 학습·실험 저장은 해당 단계에서 연결한다.
 export function LeftPanel({ state, dispatch, controls }: Props) {
-  const { phase } = state;
-  const active = phase === 'running' || phase === 'paused';
+  const { phase, auto, settings } = state;
+  const set = (patch: Partial<GaSettings>) => controls.setSettings({ ...settings, ...patch });
+  const canStart = (phase === 'trackSetup' && !!state.track) || (phase === 'ready' && !auto);
 
   return (
     <aside className="panel panel-left" aria-label="설정 및 조작">
       <TrackSection key={state.seed} state={state} dispatch={dispatch} onNewGame={controls.newGame} />
 
+      {phase === 'parentSelection' && !auto && (
+        <Section title="부모 선택">
+          <p className="notice">
+            트랙 위 자동차를 클릭하거나 드래그해서 다음 세대의 부모를 고르세요 ({MIN_PARENTS}대 이상). 1등은 금색
+            챔피언으로 따로 보존됩니다.
+          </p>
+          <p className="selection-count" data-testid="selection-count">
+            선택 {state.selection.length}대
+          </p>
+          <div className="grid-2">
+            <button type="button" disabled={state.selection.length === 0} onClick={controls.clearSelection}>
+              선택 초기화
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={state.selection.length < MIN_PARENTS}
+              onClick={controls.confirmParents}
+            >
+              결정완료
+            </button>
+          </div>
+          <button type="button" className="btn-block" onClick={controls.autoSelect}>
+            자동으로 부모 고르기
+          </button>
+        </Section>
+      )}
+
       <Section title="진화 설정">
-        <Field label="자동차 개체 수" value={`${state.populationSize}대`}>
-          <input type="range" min={10} max={100} value={state.populationSize} disabled readOnly />
+        <Field label="자동차 개체 수" value={`${settings.populationSize}대`}>
+          <input
+            type="range"
+            aria-label="자동차 개체 수"
+            min={POPULATION_RANGE[0]}
+            max={POPULATION_RANGE[1]}
+            step={5}
+            value={settings.populationSize}
+            disabled={auto}
+            onChange={(e) => set({ populationSize: Number(e.target.value) })}
+          />
         </Field>
         <Field label="진화 방식">
-          <select disabled defaultValue="manual">
+          <select
+            aria-label="진화 방식"
+            value={settings.selectionMode}
+            disabled={auto}
+            onChange={(e) => set({ selectionMode: e.target.value as GaSettings['selectionMode'] })}
+          >
             <option value="manual">수동 (부모 직접 선택)</option>
-            <option value="auto">자동</option>
+            <option value="auto">자동 (상위 개체 자동 선택)</option>
           </select>
         </Field>
-        <Field label="교차 확률" value="80%">
-          <input type="range" min={0} max={100} defaultValue={80} disabled />
+        <Field label="교차 확률" value={`${Math.round(settings.crossoverRate * 100)}%`}>
+          <input
+            type="range"
+            aria-label="교차 확률"
+            min={0}
+            max={100}
+            value={Math.round(settings.crossoverRate * 100)}
+            onChange={(e) => set({ crossoverRate: Number(e.target.value) / 100 })}
+          />
         </Field>
-        <Field label="돌연변이 확률" value="15%">
-          <input type="range" min={0} max={100} defaultValue={15} disabled />
+        <Field label="돌연변이 확률" value={`${Math.round(settings.mutationRate * 100)}%`}>
+          <input
+            type="range"
+            aria-label="돌연변이 확률"
+            min={0}
+            max={100}
+            value={Math.round(settings.mutationRate * 100)}
+            onChange={(e) => set({ mutationRate: Number(e.target.value) / 100 })}
+          />
         </Field>
+        {phase !== 'trackSetup' && <p className="hint">설정은 다음 세대를 만들 때 적용됩니다.</p>}
       </Section>
 
       <Section title="주행">
-        <p className="notice">1세대는 무작위 신경망으로 달립니다. 진화(다음 세대)는 5단계에서 연결됩니다.</p>
-        {phase === 'finished' && (
-          <p className="notice">모든 자동차가 주행을 마쳤습니다. 다음 세대 생성은 5단계에서 연결됩니다.</p>
-        )}
         <div className="grid-2">
-          <button type="button" className="btn-primary" disabled={!state.track || phase !== 'trackSetup'} onClick={controls.start}>
+          <button type="button" className="btn-primary" disabled={!canStart} onClick={controls.start}>
             주행 시작
           </button>
-          <button type="button" disabled={phase !== 'running' || state.skipping} onClick={controls.pause}>
+          <button type="button" disabled={phase !== 'running' || state.skipping || auto} onClick={controls.pause}>
             일시정지
           </button>
-          <button type="button" disabled={phase !== 'paused'} onClick={controls.resume}>
+          <button type="button" disabled={phase !== 'paused' || auto} onClick={controls.resume}>
             주행 재개
           </button>
-          <button type="button" disabled={!active || state.skipping} onClick={controls.skip}>
+          <button
+            type="button"
+            disabled={(phase !== 'running' && phase !== 'paused') || state.skipping || auto}
+            onClick={controls.skip}
+          >
             건너뛰기
           </button>
         </div>
@@ -82,8 +147,32 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
       </Section>
 
       <Section title="자동 학습">
-        <button type="button" className="btn-block btn-accent" disabled>
-          자동 학습 시작
+        {auto ? (
+          <button type="button" className="btn-block btn-stop" onClick={controls.stopAuto}>
+            자동 학습 정지
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn-block btn-accent"
+            disabled={phase === 'trackSetup' || phase === 'countdown'}
+            onClick={controls.startAuto}
+          >
+            자동 학습 시작
+          </button>
+        )}
+        <p className="hint">
+          {phase === 'trackSetup'
+            ? '주행을 한 번 시작한 뒤 사용할 수 있습니다.'
+            : '출발부터 평가·부모 선택·교차·돌연변이·다음 세대까지 정지할 때까지 자동으로 반복합니다.'}
+        </p>
+        <button
+          type="button"
+          className="btn-block"
+          disabled={phase === 'trackSetup' || phase === 'countdown' || auto}
+          onClick={controls.resetLearning}
+        >
+          학습 초기화 (트랙 유지)
         </button>
       </Section>
 

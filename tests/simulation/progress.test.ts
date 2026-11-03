@@ -2,14 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { nearestIndex } from '../../src/simulation/collision';
 import { DT } from '../../src/simulation/params';
 import { gateDistances, progressOf, updateProgress } from '../../src/simulation/progress';
-import { advance, type World } from '../../src/simulation/world';
+import { advance } from '../../src/simulation/world';
 import { tangentAt } from '../../src/tracks/generate';
-import { blankCar, clone, followCenterline, randomWorld, testTrack } from './helpers';
+import { blankCar, followCenterline, only, randomWorld, testTrack } from './helpers';
 
-/** 세대에서 k 번째 차만 남긴 세계 */
-function only(world: World, k: number): World {
-  return { tick: 0, cars: [clone(world.cars[k]!)], genomes: [clone(world.genomes[k]!)], finished: false };
-}
 
 describe('진행률·완주', () => {
   for (const difficulty of ['easy', 'hard'] as const) {

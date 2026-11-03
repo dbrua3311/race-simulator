@@ -1,9 +1,13 @@
 // 자동차: 단순한 탑다운 실루엣 + 앞유리(방향 표시) + 번호.
-// 차체 크기는 물리 충돌 크기(CAR.length × CAR.width)와 같다.
+// 차체 크기는 물리 충돌 크기(CAR.length × CAR.width)와 같다. 강조 효과(선택 테두리·금색)는 차체 밖에 그리지만
+// 물리·충돌 크기와는 무관한 그림일 뿐이다.
 
 import { CAR } from '../simulation/params';
 import { CAR_STRIDE, END_CODES, type Snapshot } from '../workers/protocol';
 import { worldToScreen, type Viewport } from './viewport';
+
+export const GOLD = '#f2c14e';
+export const SELECT_COLOR = '#3cc8d8';
 
 /** 번호마다 구분되는 색 (황금각으로 색상환을 고르게 나눈다) */
 export function carColor(id: number): string {
@@ -11,33 +15,45 @@ export function carColor(id: number): string {
   return `hsl(${hue.toFixed(1)}, 72%, 60%)`;
 }
 
-export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view: Viewport) {
+export interface DrawOptions {
+  /** 선택된 차 번호 */
+  selection: readonly number[];
+  /** 애니메이션 시간 (ms) */
+  time: number;
+}
+
+export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view: Viewport, options: DrawOptions) {
   const n = snapshot.ids.length;
-  const order: number[] = [];
-  // 종료된 차를 먼저(아래에) 그리고, 달리는 차를 위에 그린다
-  for (const drawEnded of [true, false]) {
-    for (let i = 0; i < n; i++) {
-      const o = i * CAR_STRIDE;
-      if ((snapshot.data[o + 4]! !== 0) !== drawEnded) continue;
-      order.push(i);
-      drawCar(
-        ctx,
-        view,
-        snapshot.ids[i]!,
-        snapshot.data[o]!,
-        snapshot.data[o + 1]!,
-        snapshot.data[o + 2]!,
-        END_CODES[snapshot.data[o + 4]!] ?? null,
-      );
-    }
+  const selected = new Set(options.selection);
+  const champion = snapshot.championIndex;
+  // 그리는 순서: 종료된 차 → 달리는 차 → 선택된 차 → 챔피언 (나중 것이 위)
+  const priority = (i: number) => {
+    if (i === champion) return 3;
+    if (selected.has(snapshot.ids[i]!)) return 2;
+    return snapshot.data[i * CAR_STRIDE + 4]! === 0 ? 1 : 0;
+  };
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => priority(a) - priority(b));
+
+  for (const i of order) {
+    const o = i * CAR_STRIDE;
+    drawCar(ctx, view, {
+      id: snapshot.ids[i]!,
+      x: snapshot.data[o]!,
+      y: snapshot.data[o + 1]!,
+      heading: snapshot.data[o + 2]!,
+      endReason: END_CODES[snapshot.data[o + 4]!] ?? null,
+      champion: i === champion,
+      selected: selected.has(snapshot.ids[i]!),
+    });
   }
-  // 번호는 차체를 모두 그린 뒤, 위에 있는 차(달리는 차)부터 겹치지 않는 것만 그린다
+  // 번호는 차체를 모두 그린 뒤, 위에 있는 차부터 겹치지 않는 것만 그린다
   const placed: Rect[] = [];
   for (let k = order.length - 1; k >= 0; k--) {
     const i = order[k]!;
     const o = i * CAR_STRIDE;
     const p = worldToScreen(view, { x: snapshot.data[o]!, y: snapshot.data[o + 1]! });
-    drawLabel(ctx, view, snapshot.ids[i]!, p.x, p.y, snapshot.data[o + 4]! !== 0, placed);
+    const force = priority(i) >= 2;
+    drawLabel(ctx, view, snapshot.ids[i]!, p.x, p.y, snapshot.data[o + 4]! !== 0, placed, force);
   }
 }
 
@@ -56,17 +72,18 @@ function drawLabel(
   y: number,
   ended: boolean,
   placed: Rect[],
+  force: boolean,
 ) {
   const fontSize = Math.max(8, Math.min(12, CAR.length * view.scale * 0.75));
   const text = String(id);
   const halfW = (fontSize * 0.62 * text.length) / 2 + 1;
   const halfH = fontSize / 2;
   const rect = { x0: x - halfW, y0: y - halfH, x1: x + halfW, y1: y + halfH };
-  if (placed.some((r) => r.x0 < rect.x1 && rect.x0 < r.x1 && r.y0 < rect.y1 && rect.y0 < r.y1)) return;
+  if (!force && placed.some((r) => r.x0 < rect.x1 && rect.x0 < r.x1 && r.y0 < rect.y1 && rect.y0 < r.y1)) return;
   placed.push(rect);
 
   ctx.save();
-  ctx.globalAlpha = ended ? 0.6 : 1;
+  ctx.globalAlpha = ended && !force ? 0.6 : 1;
   ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -78,30 +95,40 @@ function drawLabel(
   ctx.restore();
 }
 
+interface CarDraw {
+  id: number;
+  x: number;
+  y: number;
+  heading: number;
+  endReason: string | null;
+  champion: boolean;
+  selected: boolean;
+}
+
 /** 차체와 종료 표시 (번호는 drawLabel) */
-function drawCar(
-  ctx: CanvasRenderingContext2D,
-  view: Viewport,
-  id: number,
-  x: number,
-  y: number,
-  heading: number,
-  endReason: string | null,
-) {
-  const p = worldToScreen(view, { x, y });
+function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw) {
+  const p = worldToScreen(view, car);
   const len = CAR.length * view.scale;
   const wid = CAR.width * view.scale;
 
   ctx.save();
   ctx.translate(p.x, p.y);
-  ctx.rotate(-heading);
-  ctx.globalAlpha = endReason ? 0.5 : 1;
+  ctx.rotate(-car.heading);
 
+  // 선택 테두리: 금색과 구분되는 청록색 둥근 테두리
+  if (car.selected) {
+    ctx.strokeStyle = SELECT_COLOR;
+    ctx.lineWidth = 2;
+    roundRect(ctx, -len / 2 - 3, -wid / 2 - 3, len + 6, wid + 6, 4);
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = car.endReason && !car.champion && !car.selected ? 0.5 : 1;
   // 차체
-  ctx.fillStyle = carColor(id);
+  ctx.fillStyle = car.champion ? GOLD : carColor(car.id);
   roundRect(ctx, -len / 2, -wid / 2, len, wid, Math.min(wid * 0.35, 3));
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+  ctx.strokeStyle = car.champion ? '#fff3c4' : 'rgba(0, 0, 0, 0.55)';
   ctx.lineWidth = 1;
   ctx.stroke();
   // 앞유리: 진행 방향 쪽
@@ -110,7 +137,7 @@ function drawCar(
   ctx.restore();
 
   // 벽 충돌 표시
-  if (endReason === 'wall') {
+  if (car.endReason === 'wall') {
     ctx.save();
     ctx.strokeStyle = 'rgba(239, 107, 107, 0.9)';
     ctx.lineWidth = 1.5;
