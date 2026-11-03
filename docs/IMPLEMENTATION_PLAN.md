@@ -6,8 +6,8 @@
 ## 0단계. 저장소·문서 ✅
 - GitHub 저장소, 요구사항 원문, 아키텍처·계획·결정 문서
 
-## 1단계. 프로젝트 기본 환경 ⬜
-- Vite + React + TypeScript, ESLint, Vitest, Recharts
+## 1단계. 프로젝트 기본 환경 ✅
+- Vite + React + TypeScript, ESLint, Vitest, Playwright, Recharts
 - 3단 레이아웃 뼈대(왼쪽 패널 / 중앙 캔버스 / 오른쪽 통계), 한국어 라벨
 - 빈 Web Worker 왕복 메시지 확인
 - GitHub Actions: 타입 검사 + 단위 테스트 + 빌드

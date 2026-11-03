@@ -8,7 +8,7 @@
 - 테스트로 확인하지 않은 기능을 "완료"라고 하지 않는다. `IMPLEMENTATION_PLAN.md` 의 ✅ 는 테스트 통과 후에만
 - 사용자에게 보이는 모든 문자열(버튼, 안내, 그래프, 오류)은 한국어. "Race Simulator" 만 영어
 - 사용자가 원하지 않은 화면(자동 학습 정지 후 선택창, 부모 선택 전용 화면, 겹친 차 확대 팝업 등)을 만들지 않는다
-- 커밋 전에 `npm test` 와 `npm run build` 를 통과시킨다
+- 커밋 전에 `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` 를 통과시킨다. 화면이 바뀌면 `npm run test:e2e` 도 실행한다
 - 작업 후 한국어로 보고: 구현한 기능 / 수정한 파일 / 해결한 문제 / 실제로 한 테스트 / 아직 안 된 것
 
 ## 시뮬레이션 코어 규칙 (`src/core`, `src/tracks`, `src/simulation`, `src/genetics`)
@@ -29,4 +29,6 @@
 
 ## 환경
 
-- Ubuntu, Node.js LTS. 홈 디스크 여유가 적으므로 npm 캐시·Playwright 브라우저 경로는 `/mnt/extra` 아래로 둔다
+- Ubuntu, Node.js 26 (nvm: `export NVM_DIR=/mnt/extra/tools/nvm && . $NVM_DIR/nvm.sh`)
+- 홈 디스크 여유가 적다. npm 캐시는 `/mnt/extra/tools/npm-cache`, Playwright 브라우저는 `PLAYWRIGHT_BROWSERS_PATH=/mnt/extra/tools/ms-playwright`
+- 단위 테스트는 `tests/`, 브라우저 테스트는 `e2e/`

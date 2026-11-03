@@ -8,18 +8,29 @@
 
 ## 현재 상태
 
-**기획·설계 단계. 아직 실행 가능한 코드는 없다.** 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
+**1단계(프로젝트 기본 환경) 완료.** 3단 화면 뼈대만 있고 시뮬레이션 기능은 아직 없다. 진행 상황은 [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) 참고.
 
 ## 기술 스택
 
 React · TypeScript · Vite · Canvas 2D · Web Worker · Recharts · Vitest · Playwright
 
-## 실행 (1단계 완료 후)
+## 실행
+
+Node.js 26 (`.nvmrc`) 필요.
 
 ```bash
 npm install
-npm run dev     # 개발 서버
-npm test        # 단위 테스트
+npm run dev        # 개발 서버 → http://localhost:5173
+npm test           # 단위 테스트 (Vitest)
+npm run lint       # ESLint
+npm run typecheck  # 타입 검사
+npm run build      # 배포용 빌드
+```
+
+브라우저 테스트 (Playwright, 처음 한 번 `npx playwright install chromium` 필요):
+
+```bash
+npm run test:e2e   # 개발 서버를 자동으로 띄우고 e2e/ 테스트 실행
 ```
 
 ## 문서
