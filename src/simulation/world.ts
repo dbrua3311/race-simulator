@@ -59,8 +59,8 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
     order = [championSlot, ...rest];
   } else order = shuffledIndices(genomes.length, rng);
   const n = track.center.length;
-  // 모든 차의 목표 거리 = 한 바퀴 + (맨 뒷줄 거리 + 여유). 완주한 차는 출발 그리드 앞쪽 "도착 구간"에 멈춘다
-  const goal = track.length + finishOffset(slots);
+  // 모든 차의 목표 거리 = 한 바퀴 - (그리드 길이 + 여유). 완주한 차는 출발 그리드 바로 뒤 "도착 구간"에 멈춘다
+  const goal = track.length - finishOffset(slots);
   const cars: CarState[] = order.map((slotId, i) => {
     const slot = slots[slotId]!;
     const trackIndex = (((Math.round(slot.s / track.spacing) % n) + n) % n);
@@ -101,9 +101,13 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
   };
 }
 
-/** 도착 구간 거리: 맨 뒷줄도 출발선보다 FINISH_MARGIN 앞에서 완주하도록 */
+/**
+ * 한 바퀴에서 빼는 거리: 그리드 길이(앞줄 ~ 맨 뒷줄) + 여유.
+ * 차마다 자기 자리보다 이만큼 뒤에서 완주하므로, 앞줄 차도 맨 뒷줄보다 FINISH_MARGIN 뒤에 멈춘다.
+ */
 export function finishOffset(slots: readonly { s: number }[]): number {
-  return -Math.min(...slots.map((s) => s.s)) + FINISH_MARGIN;
+  const s = slots.map((slot) => slot.s);
+  return Math.max(...s) - Math.min(...s) + FINISH_MARGIN;
 }
 
 const sensorBuffer: number[] = [];

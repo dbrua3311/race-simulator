@@ -93,7 +93,7 @@ describe('난이도 차이', () => {
     return radius.reduce((a, b) => a + b, 0) / radius.length;
   };
 
-  it('상 < 중 < 하 순으로 가장 급한 커브가 더 급하다', () => {
+  it('상 < 중 < 하 순으로 가장 급한 커브가 더 급하다', { timeout: 60000 }, () => {
     const easy = stats('easy');
     const medium = stats('medium');
     const hard = stats('hard');

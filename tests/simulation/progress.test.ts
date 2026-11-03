@@ -20,13 +20,11 @@ describe('진행률·완주', () => {
       expect(car.endReason).toBe('finish');
       expect(progressOf(car)).toBe(1);
       expect(car.nextGate).toBe(gateDistances(track, car.startS, car.goal).length);
-      // 목표 거리(한 바퀴 + 도착 구간)를 넘지 않고 바로 멈춘다
-      expect(car.goal).toBeGreaterThan(track.length);
+      // 목표 거리(한 바퀴 - 그리드 길이 - 여유)를 넘지 않고 바로 멈춘다
+      expect(car.goal).toBeLessThan(track.length);
       expect(car.s - car.startS).toBeGreaterThanOrEqual(car.goal);
       expect(car.s - car.startS).toBeLessThan(car.goal + 0.6);
-      // 완주한 차는 출발선보다 앞(도착 구간)에 멈춘다
-      expect(car.s - track.length).toBeGreaterThan(0);
-      expect(car.endTick! * DT).toBeGreaterThan(track.length / 13);
+      expect(car.endTick! * DT).toBeGreaterThan(car.goal / 13);
     });
 
     it(`${difficulty}: 맨 뒷줄에서 출발해도 같은 거리를 달려야 완주 (자기 출발점 기준)`, () => {
@@ -107,16 +105,18 @@ describe('진행률·완주', () => {
     expect(longer.at(-1)).toBe(track.length + 70);
   });
 
-  it('완주한 차는 출발 그리드보다 앞쪽 도착 구간에 멈춘다 (출발 직후 멈춘 차와 겹치지 않게)', () => {
+  it('완주한 차는 출발 그리드 맨 뒷줄보다 뒤(도착 구간)에 멈춘다 (그리드에 남은 차와 겹치지 않게)', () => {
     const track = testTrack();
     const base = randomWorld(track, 50, 'zone');
-    for (const slot of [0, 49]) {
+    const backRow = Math.min(...base.cars.map((c) => c.startS));
+    for (const slot of [0, 2, 49]) {
       const world = only(base, base.cars.findIndex((c) => c.slot === slot));
       advance(world, track, 60 * 300, followCenterline(track));
       const car = world.cars[0]!;
       expect(car.endReason).toBe('finish');
+      // 출발선 기준 위치 (한 바퀴 전)
       const finishS = car.s - track.length;
-      expect(finishS).toBeGreaterThan(5);
+      expect(finishS).toBeLessThan(backRow - 5);
     }
   });
 

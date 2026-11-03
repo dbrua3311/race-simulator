@@ -13,7 +13,7 @@ function check(center: Vec[]) {
 
 describe('트랙 검증', () => {
   it('넓은 원형 트랙은 통과한다', () => {
-    expect(check(polarShape(() => 140))).toMatchObject({ ok: true, issues: [] });
+    expect(check(polarShape(() => 90))).toMatchObject({ ok: true, issues: [] });
   });
 
   it('8자(교차로가 있는 트랙)는 거부한다', () => {
@@ -22,7 +22,7 @@ describe('트랙 검증', () => {
   });
 
   it('좁고 깊게 파인 곳(양쪽 도로가 맞닿음)이 있는 트랙은 거부한다', () => {
-    const inlet = (t: number) => 115 * (1 - 0.88 * Math.exp(-(((t - Math.PI / 2) / 0.12) ** 2)));
+    const inlet = (t: number) => 75 * (1 - 0.85 * Math.exp(-(((t - Math.PI / 2) / 0.12) ** 2)));
     const result = check(polarShape(inlet));
     expect(result.ok).toBe(false);
     expect(result.issues[0]).toMatch(/tooClose|tooSharp|wallIntersection|centerIntersection/);
