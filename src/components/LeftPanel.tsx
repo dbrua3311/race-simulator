@@ -1,6 +1,7 @@
 import type { Dispatch } from 'react';
 import { SPEEDS, type Action, type AppState, type Speed } from '../app/state';
 import { MIN_PARENTS, POPULATION_RANGE, type GaSettings } from '../genetics/params';
+import { ExperimentSection } from './ExperimentSection';
 import { Field, Section } from './Panel';
 import { TrackSection } from './TrackSection';
 
@@ -18,6 +19,11 @@ export interface RunControls {
   stopAuto(): void;
   resetLearning(): void;
   newGame(): void;
+  setName(name: string): void;
+  save(): void;
+  load(file: File): void;
+  exportCsv(): void;
+  exportGenome(): void;
 }
 
 interface Props {
@@ -176,19 +182,7 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
         </button>
       </Section>
 
-      <Section title="실험">
-        <div className="grid-2">
-          <button type="button" disabled>
-            실험 저장
-          </button>
-          <button type="button" disabled>
-            실험 불러오기
-          </button>
-        </div>
-        <button type="button" className="btn-block" disabled>
-          통계 CSV 내보내기
-        </button>
-      </Section>
+      <ExperimentSection state={state} controls={controls} />
     </aside>
   );
 }

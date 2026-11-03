@@ -3,6 +3,10 @@ import { LeftPanel, type RunControls } from '../components/LeftPanel';
 import { RightPanel } from '../components/RightPanel';
 import { TrackView } from '../components/TrackView';
 import type { GaSettings } from '../genetics/params';
+import { genomeFile, historyToCsv } from '../persistence/csv';
+import { downloadText } from '../persistence/download';
+import { createSaveFile, saveFileName } from '../persistence/saveFile';
+import { parseSaveFile, SaveFileError } from '../persistence/validate';
 import { gridSlots } from '../tracks/startGrid';
 import { toRunStats, type RunStats } from './runStats';
 import { randomSeed } from './seed';
@@ -15,6 +19,8 @@ export function App() {
   const [stats, setStats] = useState<RunStats | null>(null);
   const clientRef = useRef<SimClient | null>(null);
   const lastStatsUpdate = useRef(0);
+  /** 불러오는 중인 파일의 화면 정보 (워커가 실험을 받아 준 뒤 적용) */
+  const pendingLoad = useRef<{ selection: number[]; name: string } | null>(null);
 
   useEffect(() => {
     const client = createSimClient({
@@ -34,7 +40,9 @@ export function App() {
         setStats(toRunStats(snapshot));
       },
       onEvaluated: (record, ghost) => dispatch({ type: 'evaluated', record, ghost }),
-      onLoaded: (experiment) =>
+      onLoaded: (experiment) => {
+        const pending = pendingLoad.current ?? { selection: [], name: '' };
+        pendingLoad.current = null;
         dispatch({
           type: 'loaded',
           track: experiment.track,
@@ -42,9 +50,11 @@ export function App() {
           generation: experiment.generation,
           history: experiment.history,
           ghosts: experiment.ghosts,
-          selection: [],
-        }),
-      onError: (message) => dispatch({ type: 'message', message }),
+          selection: pending.selection,
+          name: pending.name,
+        });
+      },
+      onError: (message) => dispatch({ type: 'message', message: { text: message, kind: 'error' } }),
     });
     clientRef.current = client;
     return () => client.dispose();
@@ -63,7 +73,7 @@ export function App() {
   // 알림은 몇 초 뒤 사라진다
   useEffect(() => {
     if (!state.message) return;
-    const timer = setTimeout(() => dispatch({ type: 'message', message: null }), 4000);
+    const timer = setTimeout(() => dispatch({ type: 'message', message: null }), 6000);
     return () => clearTimeout(timer);
   }, [state.message]);
 
@@ -126,7 +136,52 @@ export function App() {
       setStats(null);
       dispatch({ type: 'newGame' });
     },
+    setName: (name: string) => dispatch({ type: 'setName', name }),
+    save: async () => {
+      const c = client();
+      if (!c || !state.track) return;
+      try {
+        const experiment = await c.exportExperiment();
+        const now = new Date();
+        const name = state.experimentName.trim() || `${experiment.track.seed} 실험`;
+        const file = createSaveFile(experiment, name, state.selection, now);
+        downloadText(saveFileName(experiment, now), JSON.stringify(file), 'application/json');
+        notify(`저장했습니다 — ${file.savedPoint} 시점`, 'info');
+      } catch (error) {
+        notify(`저장하지 못했습니다: ${error instanceof Error ? error.message : String(error)}`, 'error');
+      }
+    },
+    load: async (file: File) => {
+      try {
+        const save = parseSaveFile(await file.text());
+        if (!confirmLoss('다른 실험을 불러오기')) return;
+        pendingLoad.current = { selection: save.ui.selection, name: save.name };
+        setStats(null);
+        client()?.loadExperiment(save.experiment);
+        notify(`"${save.name}" 을(를) 불러왔습니다 — ${save.savedPoint} 시점부터 이어집니다`, 'info');
+      } catch (error) {
+        const reason = error instanceof SaveFileError ? error.message : '파일을 읽지 못했습니다';
+        notify(`불러오지 못했습니다: ${reason}. 지금 실험은 그대로입니다`, 'error');
+      }
+    },
+    exportCsv: () => {
+      if (!state.history.length || !state.track) return;
+      downloadText(`race-${state.track.seed}-세대별-통계.csv`, historyToCsv(state.history), 'text/csv;charset=utf-8');
+    },
+    exportGenome: () => {
+      const best = [...state.history].sort((a, b) => b.winner.fitness - a.winner.fitness)[0];
+      if (!best || !state.track) return;
+      downloadText(
+        `race-${state.track.seed}-최고유전자-${best.generation}세대-${best.winner.id}번.json`,
+        JSON.stringify(genomeFile(best), null, 2),
+        'application/json',
+      );
+    },
   };
+
+  function notify(text: string, kind: 'info' | 'error') {
+    dispatch({ type: 'message', message: { text, kind } });
+  }
 
   const showGeneration = state.phase !== 'trackSetup';
   const runFinished = state.phase === 'parentSelection';
@@ -148,8 +203,8 @@ export function App() {
         </div>
       </header>
       {state.message && (
-        <div className="toast" role="alert">
-          {state.message}
+        <div className={`toast toast-${state.message.kind}`} role={state.message.kind === 'error' ? 'alert' : 'status'} data-testid="toast">
+          {state.message.text}
         </div>
       )}
       <main className="layout">
