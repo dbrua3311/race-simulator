@@ -104,8 +104,8 @@ test('시연용 실험 파일: 30세대까지 학습한 상태로 불러와 이�
   await expect(page.getByTestId('best-car')).toContainText('30세대 1등');
   await page.getByRole('button', { name: '주행 시작' }).click();
   await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
-  await page.getByRole('button', { name: '10배속' }).click();
-  await page.waitForTimeout(4000);
+  // 학습이 잘 되어 한 세대가 금방(시뮬레이션 30여 초) 끝나므로 1배속으로 잠깐만 본다
+  await page.waitForTimeout(2500);
   await page.screenshot({ path: 'test-results/demo-running.png' });
   await page.getByRole('button', { name: '건너뛰기' }).click();
   await expect(page.getByTestId('phase')).toHaveText('부모 선택', { timeout: 60000 });

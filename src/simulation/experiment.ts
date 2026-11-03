@@ -90,24 +90,24 @@ export function newExperiment(track: Track, settings: GaSettings, seed: string):
 
 /** 현재 세대 차들을 공식 순위대로 (평가용 후보) */
 export function rankedCandidates(exp: Experiment): Candidate[] {
-  const { world, track } = exp;
-  return rankCars(world.cars, track).map((i) => ({
+  const { world } = exp;
+  return rankCars(world.cars).map((i) => ({
     id: world.cars[i]!.id,
     genome: world.genomes[i]!,
-    fitness: fitnessOf(world.cars[i]!, track),
+    fitness: fitnessOf(world.cars[i]!),
   }));
 }
 
 /** 모든 차가 종료된 세대를 평가해 기록·고스트를 남긴다 */
 export function evaluate(exp: Experiment): GenerationRecord {
-  const { world, track } = exp;
+  const { world } = exp;
   if (!world.finished) throw new Error('아직 주행 중인 세대는 평가할 수 없습니다');
   if (exp.status === 'evaluated') return exp.history.at(-1)!;
 
-  const order = rankCars(world.cars, track);
+  const order = rankCars(world.cars);
   const cars = world.cars;
-  const fitness = cars.map((c) => fitnessOf(c, track));
-  const progress = cars.map((c) => progressOf(c, track));
+  const fitness = cars.map((c) => fitnessOf(c));
+  const progress = cars.map((c) => progressOf(c));
   const times = cars.map(finishTime).filter((t): t is number => t !== null);
   const w = order[0]!;
   const winner = cars[w]!;

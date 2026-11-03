@@ -6,7 +6,8 @@ import type { Experiment } from '../simulation/experiment';
 import { DT } from '../simulation/params';
 
 export const SAVE_FORMAT = 'race-simulator-experiment';
-export const SAVE_FORMAT_VERSION = 1;
+/** 2: 목표 거리(도착 구간) 추가, 트랙 크기 변경 (2026-11-04) */
+export const SAVE_FORMAT_VERSION = 2;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;

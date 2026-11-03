@@ -1,5 +1,6 @@
 import { add, leftNormal, scale, sub, type Vec } from '../core/vec';
 import { CAR } from '../simulation/params';
+import { finishOffset } from '../simulation/world';
 import { tangentAt } from '../tracks/generate';
 import type { GridSlot, Track } from '../tracks/types';
 import { worldToScreen, type Viewport } from './viewport';
@@ -92,9 +93,57 @@ export function drawTrack(ctx: CanvasRenderingContext2D, track: Track, view: Vie
     ctx.stroke();
   }
 
+  if (slots.length) drawFinishZone(ctx, track, view, slots);
   drawStartLine(ctx, track, view);
   drawDirectionArrow(ctx, track, view);
   for (const slot of slots) drawSlot(ctx, slot, view);
+}
+
+/**
+ * 도착 구간: 모든 차가 같은 거리(한 바퀴 + 도착 구간 거리)를 달리므로, 완주한 차는 자기 출발 자리보다
+ * 그만큼 앞에 멈춘다. 그 범위를 초록 띠로 보여 준다 (출발 그리드와 겹치지 않음).
+ */
+function drawFinishZone(ctx: CanvasRenderingContext2D, track: Track, view: Viewport, slots: GridSlot[]) {
+  const offset = finishOffset(slots);
+  const from = offset + Math.min(...slots.map((s) => s.s)) - CAR.length / 2;
+  const to = offset + Math.max(...slots.map((s) => s.s)) + CAR.length / 2;
+  const n = track.center.length;
+  const i0 = Math.floor(from / track.spacing);
+  const i1 = Math.ceil(to / track.spacing);
+  const idx = (i: number) => ((i % n) + n) % n;
+  const left: Vec[] = [];
+  const right: Vec[] = [];
+  for (let i = i0; i <= i1; i++) {
+    left.push(worldToScreen(view, track.left[idx(i)]!));
+    right.push(worldToScreen(view, track.right[idx(i)]!));
+  }
+  ctx.save();
+  ctx.beginPath();
+  tracePolyline(ctx, [...left, ...right.reverse()], true);
+  ctx.fillStyle = 'rgba(74, 210, 149, 0.13)';
+  ctx.fill();
+  ctx.setLineDash([4, 3]);
+  ctx.strokeStyle = 'rgba(74, 210, 149, 0.7)';
+  ctx.lineWidth = 1;
+  for (const i of [i0, i1]) {
+    const a = worldToScreen(view, track.left[idx(i)]!);
+    const b = worldToScreen(view, track.right[idx(i)]!);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+  }
+  // 이름표: 구간 가운데, 도로 바깥쪽(오른쪽 벽 바깥)
+  const mid = idx(Math.round((i0 + i1) / 2));
+  const out = sub(track.right[mid]!, track.center[mid]!);
+  const labelAt = worldToScreen(view, add(track.right[mid]!, scale(out, 0.6)));
+  ctx.setLineDash([]);
+  ctx.font = '600 11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(74, 210, 149, 0.95)';
+  ctx.fillText('도착 구간', labelAt.x, labelAt.y);
+  ctx.restore();
 }
 
 /** 체크무늬 출발/결승선 */

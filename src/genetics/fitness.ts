@@ -11,7 +11,6 @@
 import { DT, MAX_RUN_TIME } from '../simulation/params';
 import { progressOf } from '../simulation/progress';
 import type { CarState } from '../simulation/types';
-import type { Track } from '../tracks/types';
 
 const FINISH_BONUS = 50;
 
@@ -19,16 +18,16 @@ export function finishTime(car: CarState): number | null {
   return car.endReason === 'finish' && car.endTick !== null ? car.endTick * DT : null;
 }
 
-export function fitnessOf(car: CarState, track: Track): number {
+export function fitnessOf(car: CarState): number {
   const time = finishTime(car);
   if (time !== null) return 100 + FINISH_BONUS * Math.max(0, 1 - time / MAX_RUN_TIME);
-  return progressOf(car, track) * 100;
+  return progressOf(car) * 100;
 }
 
 /** 공식 순위 비교: 음수면 a 가 앞선다 */
-export function compareCars(a: CarState, b: CarState, track: Track): number {
-  const pa = progressOf(a, track);
-  const pb = progressOf(b, track);
+export function compareCars(a: CarState, b: CarState): number {
+  const pa = progressOf(a);
+  const pb = progressOf(b);
   if (pa !== pb) return pb - pa;
   const ta = finishTime(a);
   const tb = finishTime(b);
@@ -38,6 +37,6 @@ export function compareCars(a: CarState, b: CarState, track: Track): number {
 }
 
 /** 공식 순위대로 정렬한 차 인덱스 (0번이 1등) */
-export function rankCars(cars: readonly CarState[], track: Track): number[] {
-  return cars.map((_, i) => i).sort((i, j) => compareCars(cars[i]!, cars[j]!, track));
+export function rankCars(cars: readonly CarState[]): number[] {
+  return cars.map((_, i) => i).sort((i, j) => compareCars(cars[i]!, cars[j]!));
 }

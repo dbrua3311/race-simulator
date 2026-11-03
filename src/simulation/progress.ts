@@ -6,7 +6,8 @@
 // - 체크포인트(출발선 포함)는 자기 출발점부터 순서대로, 정방향으로 지나야만 인정된다.
 //   뒤로 다시 넘으면 인정이 취소된다 → 결승선 앞뒤 왕복으로 완주할 수 없다.
 // - 유효 진행 거리 = 다음 미통과 체크포인트를 넘지 않는 범위에서 지금까지 도달한 최대 거리.
-// - 완주 = 모든 체크포인트를 순서대로 지나 정확히 한 바퀴(트랙 길이)를 달린 순간.
+// - 완주 = 모든 체크포인트를 순서대로 지나 목표 거리(한 바퀴 + 도착 구간 거리, 모든 차 같음)를 달린 순간.
+//   도착 구간 거리 덕분에 완주한 차는 출발 그리드보다 앞쪽에 멈춰, 출발 직후 멈춘 차들과 겹치지 않는다 (DECISIONS D31).
 
 import type { Track } from '../tracks/types';
 import type { CarState } from './types';
@@ -32,28 +33,31 @@ export function localS(track: Track, index: number, x: number, y: number): numbe
   return bestS;
 }
 
-const gateCache = new WeakMap<Track, Map<number, number[]>>();
+const gateCache = new WeakMap<Track, Map<string, number[]>>();
 
 /**
  * 출발 위치 startS 인 차가 순서대로 지나야 하는 체크포인트들의 "출발점부터의 거리".
- * 출발선과 모든 체크포인트를 한 바퀴 안에서 만나는 순서로 나열하고, 마지막은 한 바퀴(트랙 길이) 지점이다.
+ * 출발선과 모든 체크포인트를 목표 거리(goal) 안에서 만나는 순서로 나열하고, 마지막은 목표 지점이다.
  */
-export function gateDistances(track: Track, startS: number): number[] {
+export function gateDistances(track: Track, startS: number, goal: number = track.length): number[] {
   let byStart = gateCache.get(track);
   if (!byStart) {
     byStart = new Map();
     gateCache.set(track, byStart);
   }
-  let gates = byStart.get(startS);
+  const key = `${startS}/${goal}`;
+  let gates = byStart.get(key);
   if (!gates) {
     const L = track.length;
     const positions = [track.startLine.s, ...track.checkpoints.map((c) => c.s)];
-    gates = positions
-      .map((g) => (((g - startS) % L) + L) % L)
-      .filter((d) => d > 1e-9)
-      .sort((a, b) => a - b);
-    gates.push(L);
-    byStart.set(startS, gates);
+    const firstLap = positions.map((g) => (((g - startS) % L) + L) % L).filter((d) => d > 1e-9);
+    gates = [];
+    for (let lap = 0; lap * L < goal; lap++) {
+      for (const d of firstLap) if (d + lap * L < goal - 1e-9) gates.push(d + lap * L);
+    }
+    gates.sort((a, b) => a - b);
+    gates.push(goal);
+    byStart.set(key, gates);
   }
   return gates;
 }
@@ -66,11 +70,11 @@ export function updateProgress(car: CarState, track: Track, tick: number): boole
   car.s = s + Math.round((car.s - s) / L) * L;
 
   const distance = car.s - car.startS;
-  const gates = gateDistances(track, car.startS);
+  const gates = gateDistances(track, car.startS, car.goal);
   while (car.nextGate < gates.length && distance >= gates[car.nextGate]!) car.nextGate++;
   while (car.nextGate > 0 && distance < gates[car.nextGate - 1]!) car.nextGate--;
 
-  const cap = car.nextGate < gates.length ? gates[car.nextGate]! : L;
+  const cap = car.nextGate < gates.length ? gates[car.nextGate]! : car.goal;
   const valid = Math.min(distance, cap);
   if (valid > car.bestDistance) {
     car.bestDistance = valid;
@@ -79,7 +83,7 @@ export function updateProgress(car: CarState, track: Track, tick: number): boole
   return car.nextGate === gates.length;
 }
 
-/** 유효 진행률 0 ~ 1 */
-export function progressOf(car: CarState, track: Track): number {
-  return Math.max(0, Math.min(1, car.bestDistance / track.length));
+/** 유효 진행률 0 ~ 1 (목표 거리 대비) */
+export function progressOf(car: CarState): number {
+  return Math.max(0, Math.min(1, car.bestDistance / car.goal));
 }
