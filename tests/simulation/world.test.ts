@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DT, MAX_RUN_TIME, NO_PROGRESS_TIME } from '../../src/simulation/params';
-import { advance, stepWorld, type Controller, type World } from '../../src/simulation/world';
+import { advance, stepWorld, type Controller } from '../../src/simulation/world';
 import { gridSlots } from '../../src/tracks/startGrid';
-import { clone, followCenterline, randomWorld, testTrack } from './helpers';
+import { clone, followCenterline, only, randomWorld, testTrack } from './helpers';
 
-const only = (world: World, k: number): World => ({
-  tick: 0,
-  cars: [clone(world.cars[k]!)],
-  genomes: [clone(world.genomes[k]!)],
-  finished: false,
-});
 
 describe('한 세대 주행', () => {
   const track = testTrack();

@@ -405,3 +405,69 @@ select:disabled {
 .notice + .btn-block {
   margin-top: 0;
 }
+
+.hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.selection-count {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.btn-stop {
+  background: #7a2d2d;
+  border-color: #a33c3c;
+  font-weight: 600;
+}
+
+.toast {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border: 1px solid rgba(239, 107, 107, 0.5);
+  border-radius: 8px;
+  background: #2a1517;
+  color: #ffd6d6;
+  font-size: 13px;
+}
+
+.track-canvas canvas.selecting {
+  cursor: crosshair;
+}
+
+.car-tooltip {
+  position: absolute;
+  z-index: 5;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(17, 26, 40, 0.95);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.info dt {
+  color: var(--muted);
+}
+
+.info dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

@@ -39,3 +39,6 @@ export const BRAKE_STOP_SPEED = 0.05;
 /** 안전 종료: 이 시간 동안 유효 진행이 PROGRESS_STEP 미만이면 진행 없음으로 종료 */
 export const NO_PROGRESS_TIME = 5;
 export const PROGRESS_STEP = 1;
+
+/** 주행 궤적(고스트) 기록 간격 (스텝). 6 스텝 = 0.1 s */
+export const TRAIL_EVERY = 6;

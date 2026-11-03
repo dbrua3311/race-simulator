@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const simTime = (page: Page) => page.getByTestId('sim-time').textContent();
 
 async function startRun(page: Page, seed: string) {
+  page.on('dialog', (dialog) => dialog.accept());
   await page.goto('/');
   await page.getByLabel('시드', { exact: true }).fill(seed);
   await page.getByRole('button', { name: '시드로 생성' }).click();
@@ -34,7 +35,7 @@ test('카운트다운 뒤 50대가 동시에 출발하고, 일시정지·재개�
 
   await page.getByRole('button', { name: '10배속' }).click();
   await page.getByRole('button', { name: '건너뛰기' }).click();
-  await expect(page.getByTestId('phase')).toHaveText('주행 종료', { timeout: 20000 });
+  await expect(page.getByTestId('phase')).toHaveText('부모 선택', { timeout: 20000 });
   await expect(page.getByTestId('stat-주행 중')).toHaveText('0대');
   await expect(page.getByTestId('stat-최고 진행률')).toHaveText(/^\d+\.\d%$/);
   await expect(page.getByTestId('finish-record')).toHaveText(/^(완주 기록 없음|\d\d:\d\d\.\d\d)$/);
@@ -43,7 +44,7 @@ test('카운트다운 뒤 50대가 동시에 출발하고, 일시정지·재개�
 
 test('같은 트랙·같은 판은 몇 배속으로 보든 같은 결과로 끝난다', async ({ page }) => {
   const finalStats = async () => {
-    await expect(page.getByTestId('phase')).toHaveText('주행 종료', { timeout: 30000 });
+    await expect(page.getByTestId('phase')).toHaveText('부모 선택', { timeout: 30000 });
     return {
       time: await simTime(page),
       wall: await page.getByTestId('stat-벽 충돌').textContent(),
