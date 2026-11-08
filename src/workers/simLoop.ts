@@ -105,7 +105,14 @@ export class SimLoop {
         this.run();
         return;
       case 'setSpeed':
-        this.speed = Math.max(0, command.speed);
+        if (!Number.isFinite(command.speed) || command.speed <= 0) throw new Error('올바른 배속을 선택하세요');
+        this.speed = Math.min(256, Math.max(1, command.speed));
+        this.owedSteps = 0;
+        this.lastTime = this.env.now();
+        this.speedWindowStart = this.lastTime;
+        this.speedWindowSteps = 0;
+        this.actualSpeed = 0;
+        this.postSnapshot();
         return;
       case 'skip':
         if ((exp?.status !== 'running' && exp?.status !== 'paused') || this.auto) return;
@@ -187,11 +194,11 @@ export class SimLoop {
     const exp = this.exp;
     if (!exp || exp.status !== 'running') return;
     const start = this.env.now();
-    const fast = this.skipping || this.auto;
+    const fast = this.skipping;
     let stepped = 0;
 
     if (fast) {
-      // 건너뛰기·자동 학습: 예산 안에서 최대한 계산 (자동 학습은 세대가 바뀌어도 이어서)
+      // 건너뛰기만 최대 속도로 계산한다. 자동 학습도 일반 주행과 같은 배속 예산을 따른다.
       while (exp.status === 'running' && this.env.now() - start < BUDGET_MS) {
         stepped += advance(exp.world, exp.track, CHUNK);
         if (exp.world.finished) {
@@ -257,7 +264,6 @@ export class SimLoop {
     let bestFitness = 0;
     let fitnessSum = 0;
     let bestFinish: Snapshot['bestFinish'] = null;
-    let championIndex = -1;
     world.cars.forEach((car, i) => {
       const o = i * CAR_STRIDE;
       data[o] = car.x;
@@ -265,7 +271,6 @@ export class SimLoop {
       data[o + 2] = car.heading;
       data[o + 3] = car.speed;
       data[o + 4] = END_CODES.indexOf(car.endReason);
-      if (car.champion) championIndex = i;
       const progress = progressOf(car);
       data[o + 5] = progress;
       const fitness = fitnessOf(car);
@@ -290,7 +295,6 @@ export class SimLoop {
       tick: world.tick,
       ids: world.cars.map((c) => c.id),
       data,
-      championIndex,
       counts,
       bestProgress,
       averageProgress: progressSum / n,

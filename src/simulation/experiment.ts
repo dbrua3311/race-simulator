@@ -37,11 +37,8 @@ export interface GenerationRecord {
     fitness: number;
     finishTime: number | null;
     endReason: EndReason | null;
-    champion: boolean;
     genome: Genome;
   };
-  /** 이번 세대의 금색 챔피언 번호 (1세대는 없음) */
-  championId: number | null;
   /** 이 세대에서 다음 세대 부모를 어떻게 골랐는가 (다음 세대를 만들 때 채운다) */
   parents: { mode: 'manual' | 'auto'; ids: number[] } | null;
 }
@@ -64,7 +61,7 @@ export interface Experiment {
   /** 진화용 난수 상태 (배치·교차·돌연변이·선택) */
   rng: RngState;
   world: World;
-  /** world 의 차들의 계보 (0번이 챔피언이면 직전 1등) */
+  /** world 의 차들의 실제 부모와 변형 기록 */
   lineage: ParentInfo[] | null;
   status: ExperimentStatus;
   /** 평가가 끝난 세대들 */
@@ -141,10 +138,8 @@ export function evaluate(exp: Experiment): GenerationRecord {
       fitness: fitness[w]!,
       finishTime: finishTime(winner),
       endReason: winner.endReason,
-      champion: winner.champion,
       genome: [...world.genomes[w]!],
     },
-    championId: cars.find((c) => c.champion)?.id ?? null,
     parents: null,
   };
   exp.history.push(record);
@@ -180,7 +175,7 @@ export function nextGeneration(exp: Experiment, parentIds: number[] | null, expe
 
   const brain = exp.world.brain;
   const { genomes, lineage } = breed(ranked, parentIds, exp.settings, exp.rng, brain);
-  exp.world = createWorld(exp.track, genomes, exp.rng, { championSlot: record.winner.slot, brain });
+  exp.world = createWorld(exp.track, genomes, exp.rng, { brain });
   exp.lineage = lineage;
   exp.generation++;
   exp.status = 'ready';

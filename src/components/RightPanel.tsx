@@ -65,7 +65,7 @@ export function RightPanel(props: Props) {
         </dl>
         {auto && stats && (
           <p className="hint" data-testid="actual-speed">
-            자동 학습 계산 속도: 실시간의 약 {Math.round(stats.actualSpeed)}배
+            실제 진행 배속: ×{stats.actualSpeed.toFixed(1)}
           </p>
         )}
       </Section>
@@ -122,7 +122,7 @@ export function RightPanel(props: Props) {
             <dd>{last.generation}세대 1등</dd>
             <dt>번호</dt>
             <dd>
-              {last.winner.id}번{last.winner.champion ? ' (금색 챔피언)' : ''}
+              {last.winner.id}번
             </dd>
             <dt>진행률</dt>
             <dd>{pct(last.winner.progress)}</dd>

@@ -6,8 +6,8 @@ import type { Experiment } from '../simulation/experiment';
 import { DT } from '../simulation/params';
 
 export const SAVE_FORMAT = 'race-simulator-experiment';
-/** 2: 목표 거리(도착 구간) 추가 / 3: 운전 방식(신경망·조작 순서) 추가 (2026-11-04) */
-export const SAVE_FORMAT_VERSION = 3;
+/** 4: 자동 원본 보존과 시각 강조 필드 제거. 2/3 파일은 현재 상태를 유지해 읽는다. */
+export const SAVE_FORMAT_VERSION = 4;
 
 export interface SaveFile {
   format: typeof SAVE_FORMAT;

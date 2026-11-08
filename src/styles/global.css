@@ -513,10 +513,6 @@ select:disabled {
   font-weight: 700;
 }
 
-.lg-gold {
-  background: var(--gold);
-  box-shadow: 0 0 6px rgba(242, 193, 78, 0.9);
-}
 
 .lg-select {
   border: 2px solid var(--accent);
@@ -551,3 +547,9 @@ select:disabled {
 .mt {
   margin-top: 8px;
 }
+
+/* Keep six playback speeds readable in the narrow control panel. */
+.segmented.speed-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.segmented.speed-options button { min-width: 0; }
+.segmented.speed-options button:nth-child(3n + 1) { border-left: 0; }
+.segmented.speed-options button:nth-child(n + 4) { border-top: 1px solid var(--line); }

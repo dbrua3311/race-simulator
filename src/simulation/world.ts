@@ -58,20 +58,12 @@ export const defaultController = (world: World): Controller =>
 
 export interface WorldOptions {
   brain?: Brain;
-  /** genomes[0] 이 금색 챔피언이면 그 차가 설 자리 (직전 세대 1등의 출발 자리). 나머지는 무작위 */
-  championSlot?: number | null;
 }
 
 /** 유전자마다 차 한 대를 출발 그리드에 무작위로 배치한다 (배치는 rng 로 결정 → 재현 가능) */
 export function createWorld(track: Track, genomes: Genome[], rng: RngState, options: WorldOptions = {}): World {
   const slots = gridSlots(track, genomes.length);
-  const championSlot = options.championSlot ?? null;
-  const hasChampion = championSlot !== null && championSlot < genomes.length;
-  let order: number[];
-  if (hasChampion) {
-    const rest = shuffledIndices(genomes.length - 1, rng).map((k) => (k >= championSlot ? k + 1 : k));
-    order = [championSlot, ...rest];
-  } else order = shuffledIndices(genomes.length, rng);
+  const order = shuffledIndices(genomes.length, rng);
   const n = track.center.length;
   // 모든 차의 목표 거리 = 한 바퀴 - (그리드 길이 + 여유). 완주한 차는 출발 그리드 바로 뒤 "도착 구간"에 멈춘다
   const goal = track.length - finishOffset(slots);
@@ -84,7 +76,6 @@ export function createWorld(track: Track, genomes: Genome[], rng: RngState, opti
     return {
       id: i + 1,
       slot: slotId,
-      champion: hasChampion && i === 0,
       x: slot.position.x,
       y: slot.position.y,
       heading: slot.heading,

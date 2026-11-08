@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 type CarPos = { id: number; x: number; y: number };
 const cars = (page: Page) => page.evaluate(() => (window as unknown as { __raceCars: () => CarPos[] }).__raceCars());
@@ -97,7 +98,7 @@ test('주행 중 저장 → 불러오면 그 시점에서 일시정지, 재개�
 test('시연용 실험 파일: 30세대까지 학습한 상태로 불러와 이어서 달리면 완주 기록이 나온다', async ({ page }) => {
   test.setTimeout(90000);
   await page.goto('/');
-  await page.getByTestId('load-input').setInputFiles('demo/demo-medium-30세대.race.json');
+  await page.getByTestId('load-input').setInputFiles(fileURLToPath(new URL('../demo/demo-medium-30세대.race.json', import.meta.url)));
   await expect(page.getByTestId('toast')).toContainText('불러왔습니다');
   await expect(page.getByTestId('generation')).toHaveText('31');
   await expect(page.getByTestId('phase')).toHaveText('주행 준비');

@@ -6,6 +6,8 @@ export const INITIAL_GENE_RANGE = 1;
 
 /** 유전 알고리즘 설정. 화면에서 바꿀 수 있고, 다음 세대를 만들 때 적용된다 */
 export interface GaSettings {
+  /** 우수 부모가 충분하면 일부 자손은 작은 변이로 주행을 보존한다. 누락은 켜짐. */
+  preserveDriving?: boolean;
   /** 자동차 개체 수 (10 ~ 100) */
   populationSize: number;
   /** 교차 확률 (0 ~ 1): 자손마다 이 확률로 두 부모를 섞고, 아니면 한 부모를 복제한다 */
@@ -34,10 +36,11 @@ export const BRAIN_LABEL: Record<Brain, string> = {
 };
 
 export const DEFAULT_SETTINGS: GaSettings = {
-  populationSize: 50,
+  preserveDriving: true,
+  populationSize: 20,
   crossoverRate: 0.8,
   mutationRate: 0.15,
-  // 실험으로 정함 (DECISIONS D32): 0.5 / 3 은 챔피언 혼자 앞서고 자손 대부분이 망가졌다
+  // 실험으로 정함 (DECISIONS D32): 0.5 / 3 은 최고 개체만 앞서고 자손 대부분이 망가졌다
   mutationStrength: 0.25,
   tournamentSize: 5,
   selectionMode: 'manual',

@@ -103,7 +103,7 @@ describe('워커 주행 루프', () => {
     loop.handle({ type: 'confirmParents', generation: 1, parentIds: [1, 2, 3] });
     loop.handle({ type: 'confirmParents', generation: 1, parentIds: [1, 2, 3] });
     expect(f.last()).toMatchObject({ status: 'ready', generation: 2 });
-    expect(f.last().championIndex).toBe(0);
+    expect(f.last().ids).toHaveLength(20);
     expect(f.errors()).toHaveLength(1);
   });
 
@@ -163,5 +163,46 @@ describe('워커 주행 루프', () => {
     const loop = new SimLoop({ ...f.env, post: (e) => events.push(e) });
     loop.handle({ type: 'ping', id: 3 });
     expect(events[0]).toMatchObject({ type: 'pong', id: 3 });
+  });
+});
+
+
+describe('자동 학습 배속', () => {
+  it('자동 학습 중 배속 변경은 같은 세대의 실제 tick 진행량에 즉시 반영된다', () => {
+    const { f, loop } = started(1);
+    loop.handle({ type: 'startAuto' });
+    const measure = (speed: number) => {
+      const before = loop.experiment!.world.tick;
+      const generation = loop.experiment!.generation;
+      loop.handle({ type: 'setSpeed', speed });
+      f.run(() => false, 20);
+      expect(loop.experiment!.generation).toBe(generation);
+      expect(f.last().auto).toBe(true);
+      return loop.experiment!.world.tick - before;
+    };
+    const normal = measure(1), fast = measure(5), normalAgain = measure(1);
+    expect(normal).toBeGreaterThan(0);
+    expect(fast).toBeGreaterThan(normal * 3);
+    expect(normalAgain).toBeLessThan(fast / 3);
+  });
+
+  it('자동 1배속과 50배속은 첫 세대 평가와 다음 세대 유전자·난수가 같다', () => {
+    const finish = (speed: number) => {
+      const { f, loop } = started(speed);
+      loop.handle({ type: 'startAuto' });
+      f.run(() => loop.experiment!.generation >= 2);
+      const e = loop.experiment!;
+      return { history: e.history, genes: e.world.genomes, rng: e.rng };
+    };
+    expect(finish(50)).toEqual(finish(1));
+  });
+
+  it.each([NaN, Infinity, -Infinity, 0, -1])('잘못된 배속 %s를 거절해도 실행을 계속할 수 있다', (speed) => {
+    const { f, loop } = started();
+    loop.handle({ type: 'startAuto' });
+    loop.handle({ type: 'setSpeed', speed });
+    expect(f.errors()).toHaveLength(1);
+    f.run(() => f.last().tick > 30);
+    expect(f.last().auto).toBe(true);
   });
 });

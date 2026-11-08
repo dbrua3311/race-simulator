@@ -30,7 +30,7 @@ export const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export function blankCar(): CarState {
   return {
-    id: 1, slot: 0, champion: false, x: 0, y: 0, heading: 0, speed: 0, steer: 0, throttle: 0, trackIndex: 0,
+    id: 1, slot: 0, x: 0, y: 0, heading: 0, speed: 0, steer: 0, throttle: 0, trackIndex: 0,
     ended: false, endReason: null, endTick: null,
     startS: 0, goal: 1000, s: 0, bestDistance: 0, bestTick: 0, nextGate: 0,
     hasMoved: false, progressMark: 0, progressMarkTick: 0,

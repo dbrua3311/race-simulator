@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '../../src/genetics/params';
 import { historyToCsv, genomeFile } from '../../src/persistence/csv';
@@ -38,7 +39,7 @@ describe('실험 저장·불러오기', () => {
 
   it('저장 파일에 원문 45절 항목이 모두 들어 있다', () => {
     const file = roundTrip(twoGenerations());
-    expect(file).toMatchObject({ format: 'race-simulator-experiment', formatVersion: 3, name: '테스트' });
+    expect(file).toMatchObject({ format: 'race-simulator-experiment', formatVersion: 4, name: '테스트' });
     expect(file.savedAt).toBe('2026-11-04T10:00:00.000Z');
     const e = file.experiment;
     expect(e.track.seed).toBe('SAVE1');
@@ -101,4 +102,35 @@ describe('CSV·유전자 내보내기', () => {
     expect(file.network).toEqual([5, 6, 2]);
     expect(file.genome).toHaveLength(50);
   });
+});
+
+
+it.each([2, 3])('이전 형식%i의 유전자·위치·난수는 유지하고 표시 플래그를 제거한다', (formatVersion) => {
+  const original = twoGenerations();
+  const file = createSaveFile(original, '이전 실험', [], new Date('2026-11-09T00:00:00Z'));
+  file.formatVersion = formatVersion;
+  const data = JSON.parse(JSON.stringify(file));
+  data.experiment.world.cars[0].champion = true;
+  data.experiment.history[0].championId = 1;
+  data.experiment.history[0].winner.champion = true;
+  if (formatVersion === 2) {
+    delete data.experiment.world.brain;
+    delete data.experiment.settings.brain;
+  }
+  const loaded = parseSaveFile(JSON.stringify(data));
+  expect(loaded.formatVersion).toBe(4);
+  expect(loaded.experiment.world.genomes).toEqual(original.world.genomes);
+  expect(loaded.experiment.world.cars).toEqual(original.world.cars);
+  expect(loaded.experiment.rng).toEqual(original.rng);
+  expect('championId' in loaded.experiment.history[0]!).toBe(false);
+  expect('champion' in loaded.experiment.history[0]!.winner).toBe(false);
+});
+
+
+it('저장소의 실제 발표용 시연 파일을 현재 형식으로 읽는다', () => {
+  const data = readFileSync(new URL('../../demo/demo-medium-30세대.race.json', import.meta.url), 'utf8');
+  const file = parseSaveFile(data);
+  expect(file.formatVersion).toBe(4);
+  expect(file.experiment.generation).toBeGreaterThanOrEqual(30);
+  expect(file.experiment.world.cars.every((car) => !('champion' in car))).toBe(true);
 });

@@ -4,7 +4,7 @@ test('기본 화면이 뜨고 시뮬레이션 워커와 연결된다', async ({ 
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() === 'error') errors.push(`${message.text()} (${message.location().url})`);
   });
 
   await page.goto('/');

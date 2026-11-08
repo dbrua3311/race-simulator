@@ -17,7 +17,6 @@ const HEADER = [
   '안전 종료',
   '최고 완주 시간(초)',
   '1등 자동차',
-  '1등이 금색 챔피언',
   '부모 선택',
   '부모 자동차',
 ];
@@ -41,7 +40,6 @@ export function historyToCsv(history: readonly GenerationRecord[]): string {
     r.safetyCount,
     r.bestFinishTime === null ? '' : r.bestFinishTime.toFixed(2),
     r.winner.id,
-    r.winner.champion ? '예' : '아니오',
     r.parents ? (r.parents.mode === 'manual' ? '수동' : '자동') : '',
     r.parents ? r.parents.ids.join(' ') : '',
   ]);

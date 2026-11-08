@@ -27,7 +27,7 @@ export const PHASE_LABEL: Record<Phase, string> = {
   parentSelection: '부모 선택',
 };
 
-export const SPEEDS = [1, 2, 5, 10] as const;
+export const SPEEDS = [1, 2, 5, 10, 20, 50] as const;
 export type Speed = (typeof SPEEDS)[number];
 
 /** 출발 카운트다운 (초). 실제 시간이며 시뮬레이션 시간에는 들어가지 않는다 */

@@ -30,8 +30,6 @@ export interface CarState {
   id: number;
   /** 출발 그리드 자리 번호 */
   slot: number;
-  /** 직전 세대 1등의 유전자를 그대로 물려받은 금색 챔피언인가 (세대마다 최대 1대) */
-  champion: boolean;
   /** 차체 중심 위치 (m) */
   x: number;
   y: number;

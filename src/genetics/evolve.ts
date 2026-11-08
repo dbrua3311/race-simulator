@@ -1,7 +1,7 @@
 // 다음 세대 만들기 (원문 22~24, 31, 33절).
 //
-// 1. 직전 세대 공식 1등의 유전자를 그대로 복제 → 금색 챔피언 1대 (직전 1등의 출발 자리에서 출발)
-// 2. 나머지는 부모를 골라 교차·돌연변이로 만든 자손
+// 1. 모든 자리를 실제 재조합·변이 자손으로 채운다. 최고점 자동 원본 복사는 없다.
+// 2. 우수 부모가 충분하면 일부는 작은 변이, 나머지는 기존 교차·변이로 탐색한다.
 //    - 수동: 사용자가 고른 부모들 안에서 무작위로 짝을 짓는다 (1대만 골랐으면 그 차를 조금씩 바꾼 자손들)
 //    - 자동: 토너먼트 선택 (적합도 높은 차가 부모가 될 확률이 높다)
 
@@ -18,11 +18,14 @@ export interface ParentInfo {
   crossed: boolean;
   /** 돌연변이로 바뀐 유전자 수 */
   mutatedGenes: number;
+  /** 보존형 자손: 교차 없이 설정 변이 폭의 10% 또는 30%로 변형 */
+  variation?: 'local' | 'standard';
+  mutationScale?: number;
 }
 
 export interface Offspring {
   genomes: Genome[];
-  /** genomes[i] 의 계보. 0번은 챔피언 */
+  /** genomes[i] 의 실제 부모와 변형 기록 */
   lineage: ParentInfo[];
 }
 
@@ -45,20 +48,24 @@ export function breed(
   rng: RngState,
   brain: Brain = 'network',
 ): Offspring {
-  const champion = ranked[0]!;
-  const genomes: Genome[] = [[...champion.genome]];
-  const lineage: ParentInfo[] = [{ ids: [champion.id], crossed: false, mutatedGenes: 0 }];
+  const best = ranked[0]!;
+  const genomes: Genome[] = [];
+  const lineage: ParentInfo[] = [];
 
   const pool = parentIds ? ranked.filter((c) => parentIds.includes(c.id)) : null;
   if (pool && pool.length === 0) throw new Error('부모가 없습니다');
   const pick = (): Candidate => (pool ? pool[nextUint32(rng) % pool.length]! : tournament(ranked, settings.tournamentSize, rng));
 
-  for (let k = 1; k < settings.populationSize; k++) {
-    const a = pick();
+  const stablePool = (pool ?? ranked).filter((p) => p.fitness >= best.fitness * 0.8 && p.fitness >= 20);
+  const localCount = brain === 'network' && settings.preserveDriving !== false && stablePool.length >= 4 ? Math.floor(settings.populationSize * 0.8) : 0;
+  for (let k = 0; k < settings.populationSize; k++) {
+    const local = k < localCount;
+    const a = local ? stablePool[k % stablePool.length]! : pick();
     let b = pick();
     // 가능하면 서로 다른 두 부모
     for (let tries = 0; b.id === a.id && tries < 8; tries++) b = pick();
-    const crossed = nextFloat(rng) < settings.crossoverRate && b.id !== a.id;
+    const crossed = !local && nextFloat(rng) < settings.crossoverRate && b.id !== a.id;
+    const mutationScale = local ? (k % 2 === 0 ? 0.1 : 0.3) : 1;
     let child: Genome;
     let mutatedGenes: number;
     if (brain === 'sequence') {
@@ -68,10 +75,10 @@ export function breed(
       mutatedGenes = mutateSequence(child, frontier, settings.mutationRate, settings.mutationStrength, rng);
     } else {
       child = crossed ? crossover(a.genome, b.genome, rng) : [...a.genome];
-      mutatedGenes = mutate(child, settings.mutationRate, settings.mutationStrength, rng);
+      mutatedGenes = mutate(child, settings.mutationRate, settings.mutationStrength * mutationScale, rng);
     }
     genomes.push(child);
-    lineage.push({ ids: crossed ? [a.id, b.id] : [a.id], crossed, mutatedGenes });
+    lineage.push({ ids: crossed ? [a.id, b.id] : [a.id], crossed, mutatedGenes, variation: local ? 'local' : 'standard', mutationScale });
   }
   return { genomes, lineage };
 }
