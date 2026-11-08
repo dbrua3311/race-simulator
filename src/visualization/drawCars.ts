@@ -1,13 +1,11 @@
 // 자동차: 단순한 탑다운 실루엣 + 앞유리(방향 표시) + 번호.
-// 차체 크기는 물리 충돌 크기(CAR.length × CAR.width)와 같다. 강조 효과(선택 테두리·금색)는 차체 밖에 그리지만
+// 차체 크기는 물리 충돌 크기(CAR.length × CAR.width)와 같다. 강조 효과(선택 테두리)는 차체 밖에 그리지만
 // 물리·충돌 크기와는 무관한 그림일 뿐이다.
 
 import { CAR } from '../simulation/params';
 import { CAR_STRIDE, END_CODES, type Snapshot } from '../workers/protocol';
-import { drawGoldAura } from './effects';
 import { worldToScreen, type Viewport } from './viewport';
 
-export const GOLD = '#f2c14e';
 export const SELECT_COLOR = '#3cc8d8';
 
 /** 번호마다 구분되는 색 (황금각으로 색상환을 고르게 나눈다) */
@@ -29,14 +27,7 @@ export interface DrawOptions {
 
 export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view: Viewport, options: DrawOptions) {
   const selected = new Set(options.selection);
-  const champion = snapshot.championIndex;
   const order = carOrder(snapshot, options);
-
-  // 금색 오라는 모든 차체 아래에 깐다
-  if (champion >= 0) {
-    const o = champion * CAR_STRIDE;
-    drawGoldAura(ctx, view, snapshot.data[o]!, snapshot.data[o + 1]!, snapshot.data[o + 2]!, options.time, snapshot.data[o + 4]! === 0, options.pixel);
-  }
 
   for (const i of order) {
     const o = i * CAR_STRIDE;
@@ -46,14 +37,13 @@ export function drawCars(ctx: CanvasRenderingContext2D, snapshot: Snapshot, view
       y: snapshot.data[o + 1]!,
       heading: snapshot.data[o + 2]!,
       endReason: END_CODES[snapshot.data[o + 4]!] ?? null,
-      champion: i === champion,
       selected: selected.has(snapshot.ids[i]!),
     }, options.pixel ?? false);
   }
   if (options.labels !== false) drawCarLabels(ctx, snapshot, view, options);
 }
 
-/** 그리는 순서: 종료된 차 → 달리는 차 → 선택된 차 → 챔피언 (나중 것이 위) */
+/** 그리는 순서: 종료된 차 → 달리는 차 → 선택된 차 (나중 것이 위) */
 function carOrder(snapshot: Snapshot, options: DrawOptions): number[] {
   const selected = new Set(options.selection);
   return Array.from({ length: snapshot.ids.length }, (_, i) => i).sort(
@@ -62,7 +52,6 @@ function carOrder(snapshot: Snapshot, options: DrawOptions): number[] {
 }
 
 function labelPriority(snapshot: Snapshot, selected: Set<number>, i: number) {
-  if (i === snapshot.championIndex) return 3;
   if (selected.has(snapshot.ids[i]!)) return 2;
   return snapshot.data[i * CAR_STRIDE + 4]! === 0 ? 1 : 0;
 }
@@ -125,7 +114,6 @@ interface CarDraw {
   y: number;
   heading: number;
   endReason: string | null;
-  champion: boolean;
   selected: boolean;
 }
 
@@ -140,7 +128,7 @@ function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw, pi
   ctx.translate(p.x, p.y);
   ctx.rotate(-car.heading);
 
-  // 선택 테두리: 금색과 구분되는 청록색 둥근 테두리
+  // 선택 테두리: 청록색 둥근 테두리
   if (car.selected) {
     ctx.strokeStyle = SELECT_COLOR;
     ctx.lineWidth = 2;
@@ -148,12 +136,12 @@ function drawCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDraw, pi
     ctx.stroke();
   }
 
-  ctx.globalAlpha = car.endReason && !car.champion && !car.selected ? 0.5 : 1;
+  ctx.globalAlpha = car.endReason && !car.selected ? 0.5 : 1;
   // 차체
-  ctx.fillStyle = car.champion ? GOLD : carColor(car.id);
+  ctx.fillStyle = carColor(car.id);
   roundRect(ctx, -len / 2, -wid / 2, len, wid, Math.min(wid * 0.35, 3));
   ctx.fill();
-  ctx.strokeStyle = car.champion ? '#fff3c4' : 'rgba(0, 0, 0, 0.55)';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
   ctx.lineWidth = 1;
   ctx.stroke();
   // 앞유리: 진행 방향 쪽
@@ -169,7 +157,7 @@ function drawPixelCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDra
   const p = worldToScreen(view, car);
   const len = Math.max(6, Math.round(CAR.length * view.scale));
   const wid = Math.max(3, Math.round(CAR.width * view.scale));
-  const body = car.champion ? GOLD : carColor(car.id);
+  const body = carColor(car.id);
 
   ctx.save();
   ctx.translate(Math.round(p.x), Math.round(p.y));
@@ -179,7 +167,7 @@ function drawPixelCar(ctx: CanvasRenderingContext2D, view: Viewport, car: CarDra
     ctx.lineWidth = 1;
     ctx.strokeRect(-len / 2 - 2, -wid / 2 - 2, len + 4, wid + 4);
   }
-  ctx.globalAlpha = car.endReason && !car.champion && !car.selected ? 0.55 : 1;
+  ctx.globalAlpha = car.endReason && !car.selected ? 0.55 : 1;
   // 바퀴
   ctx.fillStyle = '#15171c';
   const wl = Math.max(1, Math.round(len * 0.2));

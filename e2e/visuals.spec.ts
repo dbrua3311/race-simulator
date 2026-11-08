@@ -26,10 +26,12 @@ const finalStats = async (page: Page) => {
   };
 };
 
-test('2세대: 금색 챔피언 오라와 고스트가 보이고, 범례가 있다', async ({ page }) => {
+test('2세대: 일반 차량과 고스트를 구분하며 종료 범례를 표시한다', async ({ page }) => {
   await secondGeneration(page, '역대 최고 자동차');
   await expect(page.getByTestId('ghost-info')).toContainText('1세대 1등');
   await expect(page.getByTestId('legend')).toContainText('고스트');
+  await expect(page.getByTestId('legend')).not.toContainText('챔피언');
+  await expect(page.getByText('금색 챔피언', { exact: true })).toHaveCount(0);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: 'test-results/visual-gen2.png' });
   // 부모 선택 단계에서는 고스트를 숨긴다

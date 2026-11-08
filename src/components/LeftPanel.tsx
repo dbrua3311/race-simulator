@@ -45,7 +45,7 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
         <Section title="부모 선택">
           <p className="notice">
             트랙 위 자동차를 클릭하거나 드래그해서 다음 세대의 부모를 고르세요 ({MIN_PARENTS}대 이상). 1대만 고르면
-            모두가 그 차를 조금씩 다르게 따라 하고, 여러 대면 섞기도 합니다. 1등은 금색 챔피언으로 따로 보존됩니다.
+            모두가 그 차를 조금씩 다르게 따라 하고, 여러 대면 섞기도 합니다.
           </p>
           <p className="selection-count" data-testid="selection-count">
             선택 {state.selection.length}대
@@ -110,6 +110,13 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
             <option value="auto">자동 (상위 개체 자동 선택)</option>
           </select>
         </Field>
+        {settings.brain === 'network' && <>
+        <label className="hint">
+          <input type="checkbox" aria-label="배운 주행 보존" checked={settings.preserveDriving !== false}
+            onChange={(e) => set({ preserveDriving: e.target.checked })} /> 배운 주행 보존
+        </label>
+        <p className="hint">우수 부모가 4대 이상이면 자손의 약 80%는 교차 없이 작은 변이로 주행을 이어받습니다. 나머지는 아래 교차·변이 설정으로 탐색합니다.</p>
+        </>}
         <Field label="교차 확률" value={`${Math.round(settings.crossoverRate * 100)}%`}>
           <input
             type="range"
@@ -153,11 +160,12 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
           </button>
         </div>
         <Field label="배속">
-          <div className="segmented" role="group" aria-label="배속">
+          <div className="segmented speed-options" role="group" aria-label="배속">
             {SPEEDS.map((s) => (
               <button
                 key={s}
                 type="button"
+                aria-label={`${s}배속`}
                 aria-pressed={state.speed === s}
                 className={state.speed === s ? 'active' : undefined}
                 onClick={() => controls.setSpeed(s)}
@@ -167,6 +175,7 @@ export function LeftPanel({ state, dispatch, controls }: Props) {
             ))}
           </div>
         </Field>
+        <p className="hint">자동 학습 중에도 바로 변경됩니다. 5~10배속으로 관찰하고, 더 빠르게 탐색하려면 20~50배속을 선택하세요.</p>
       </Section>
 
       <Section title="자동 학습">

@@ -222,7 +222,7 @@ export function TrackView(props: Props) {
     const o = i * CAR_STRIDE;
     const reason = END_CODES[snapshot.data[o + 4]!];
     const parts = [
-      `${snapshot.ids[i]}번${i === snapshot.championIndex ? ' (금색 챔피언)' : ''}`,
+      `${snapshot.ids[i]}번`,
       `진행률 ${(snapshot.data[o + 5]! * 100).toFixed(1)}%`,
       reason ? END_REASON_LABEL[reason] : '주행 중',
     ];

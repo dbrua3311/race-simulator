@@ -67,3 +67,35 @@ test('같은 트랙·같은 판은 몇 배속으로 보든 같은 결과로 끝�
 
   expect(fast).toEqual(skipped);
 });
+
+
+test('자동 학습 중 2→10→2배속 변경이 실제 물리 진행 속도에 반영된다', async ({ page }) => {
+  test.setTimeout(45000);
+  await startRun(page, 'AUTO-SPEED');
+  await expect(page.getByTestId('phase')).toHaveText('주행 중', { timeout: 6000 });
+  await page.getByRole('button', { name: '자동 학습 시작', exact: true }).click();
+  const measure = async (speed: number) => {
+    const button = page.getByRole('button', { name: speed + '배속', exact: true });
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+    await page.waitForTimeout(1200);
+    const rates: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      await page.waitForTimeout(400);
+      rates.push(Number((await page.getByTestId('actual-speed').textContent())!.split('×')[1]));
+    }
+    await expect(page.getByRole('button', { name: '자동 학습 정지', exact: true })).toBeEnabled();
+    return rates.sort((a, b) => a - b)[1]!;
+  };
+  const normal = await measure(2), fast = await measure(10), normalAgain = await measure(2);
+  expect(normal).toBeGreaterThan(0.8);
+  expect(fast).toBeGreaterThan(normal * 2);
+  expect(normalAgain).toBeLessThan(fast * 0.7);
+  for (const speed of [20, 50]) {
+    const button = page.getByRole('button', { name: speed + '배속', exact: true });
+    await button.click();
+    await expect(button).toHaveAttribute('aria-pressed', 'true');
+  }
+  await page.getByRole('button', { name: '자동 학습 정지', exact: true }).click();
+  await expect(page.getByTestId('phase')).toHaveText('일시정지');
+});

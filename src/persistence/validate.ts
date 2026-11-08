@@ -47,8 +47,10 @@ export function parseSaveFile(text: string): SaveFile {
     const e = file.experiment;
     if (isObj(e.world) && e.world.brain === undefined) e.world.brain = 'network';
     if (isObj(e.settings) && e.settings.brain === undefined) e.settings.brain = 'network';
-    file.formatVersion = SAVE_FORMAT_VERSION;
+    file.formatVersion = 3;
   }
+  // Read older completed states without changing their genes, positions or RNG.
+  if (file.formatVersion === 3) file.formatVersion = SAVE_FORMAT_VERSION;
   if (file.formatVersion !== SAVE_FORMAT_VERSION) {
     fail(`지원하지 않는 파일 형식 버전입니다 (파일 ${String(file.formatVersion)}, 지금 ${SAVE_FORMAT_VERSION}). 예전 버전에서 저장한 실험은 이어서 할 수 없습니다`);
   }
@@ -74,6 +76,7 @@ export function parseSaveFile(text: string): SaveFile {
   obj(track.bounds, '트랙 범위');
 
   const settings = obj(exp.settings, '진화 설정');
+  if (settings.preserveDriving !== undefined && typeof settings.preserveDriving !== 'boolean') fail('주행 보존 설정이 올바르지 않습니다');
   const population = num(settings.populationSize, '자동차 개체 수');
   if (population < POPULATION_RANGE[0] || population > POPULATION_RANGE[1]) fail('자동차 개체 수가 범위를 벗어났습니다');
   for (const key of ['crossoverRate', 'mutationRate'] as const) {
@@ -110,7 +113,7 @@ export function parseSaveFile(text: string): SaveFile {
       num(car[key], `자동차 ${key}`);
     }
     if ((car.trackIndex as number) < 0 || (car.trackIndex as number) >= n) fail('자동차 위치가 트랙 밖입니다');
-    if (typeof car.ended !== 'boolean' || typeof car.champion !== 'boolean' || typeof car.hasMoved !== 'boolean') fail('자동차 상태가 올바르지 않습니다');
+    if (typeof car.ended !== 'boolean' || typeof car.hasMoved !== 'boolean') fail('자동차 상태가 올바르지 않습니다');
     ids.add(car.id as number);
   }
   if (ids.size !== cars.length) fail('자동차 번호가 겹칩니다');
@@ -130,5 +133,11 @@ export function parseSaveFile(text: string): SaveFile {
   const ui = obj(file.ui, '화면 정보');
   numbers(ui.selection, '선택한 자동차');
 
+  // Obsolete display flags are stripped from both old and current files.
+  for (const value of cars) delete (value as Obj).champion;
+  for (const value of exp.history as Obj[]) {
+    delete value.championId;
+    if (isObj(value.winner)) delete value.winner.champion;
+  }
   return data as SaveFile;
 }

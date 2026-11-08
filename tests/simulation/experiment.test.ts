@@ -13,40 +13,33 @@ function runToEnd(exp: Experiment) {
 }
 
 describe('세대 진화', () => {
-  it('1세대에는 금색 챔피언이 없고, 2세대부터 정확히 한 대', () => {
+  it('다음 세대의 모든 차는 특별 표시 없이 무작위 그리드에 배치된다', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 30 }, 's1');
-    expect(exp.world.cars.filter((c) => c.champion)).toHaveLength(0);
     runToEnd(exp);
     nextGeneration(exp, null, 1);
     expect(exp.generation).toBe(2);
-    expect(exp.world.cars.filter((c) => c.champion)).toHaveLength(1);
+    expect(exp.world.cars).toHaveLength(30);
+    expect(exp.world.cars.every((c) => !('champion' in c))).toBe(true);
+    expect(exp.lineage!.every((l) => l.variation === 'local' || l.variation === 'standard')).toBe(true);
+    expect(new Set(exp.world.cars.map((c) => c.slot)).size).toBe(30);
   });
 
-  it('챔피언은 직전 1등의 유전자·출발 자리 그대로라 직전 1등 기록을 정확히 재현한다', () => {
-    const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 30 }, 's2');
-    for (let g = 1; g <= 4; g++) {
-      const record = runToEnd(exp);
-      if (g > 1) {
-        const champion = exp.world.cars.find((c) => c.champion)!;
-        const previous = exp.history[g - 2]!.winner;
-        expect(champion.slot).toBe(previous.slot);
-        expect(champion.bestDistance / champion.goal).toBeCloseTo(previous.progress, 12);
-        // 최고 진행률은 떨어지지 않는다
-        expect(record.bestProgress).toBeGreaterThanOrEqual(previous.progress);
-      }
-      nextGeneration(exp, null, exp.generation);
-      expect(exp.world.genomes[0]).toEqual(exp.history.at(-1)!.winner.genome);
-    }
+  it('같은 완료 세대와 난수에서 생성한 다음 세대는 유전자와 배치가 같다', () => {
+    const a = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 30 }, 's2');
+    runToEnd(a);
+    const b: Experiment = structuredClone(a);
+    nextGeneration(a, null, 1);
+    nextGeneration(b, null, 1);
+    expect(b).toEqual(a);
   });
 
-  it('수동으로 고른 부모가 기록되고, 1등을 고르지 않아도 챔피언은 보존된다', () => {
+  it('수동으로 제외한 1등을 별도 자리로 다시 넣지 않는다', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 20 }, 's3');
     const record = runToEnd(exp);
     const others = exp.world.cars.map((c) => c.id).filter((id) => id !== record.winner.id).slice(0, 3);
     nextGeneration(exp, others, 1);
     expect(exp.history[0]!.parents).toEqual({ mode: 'manual', ids: others });
-    expect(exp.world.genomes[0]).toEqual(record.winner.genome);
-    expect(exp.lineage!.slice(1).every((l) => l.ids.every((id) => others.includes(id)))).toBe(true);
+    expect(exp.lineage!.every((l) => l.ids.every((id) => others.includes(id)))).toBe(true);
   });
 
   it('부모가 없으면 거부하고, 같은 세대를 두 번 만들 수 없다', () => {
@@ -93,10 +86,10 @@ describe('세대 진화', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 20 }, 's8');
     runToEnd(exp);
     nextGeneration(exp, [5], 1);
-    expect(exp.lineage!.slice(1).every((l) => l.ids.length === 1 && l.ids[0] === 5 && !l.crossed)).toBe(true);
+    expect(exp.lineage!.every((l) => l.ids.length === 1 && l.ids[0] === 5 && !l.crossed)).toBe(true);
   });
 
-  it('조작 순서 방식: 같은 거리에서 같은 조작, 챔피언 재현, 세대를 거듭하면 더 멀리 간다', () => {
+  it('조작 순서 방식: 실제 평가·변이를 반복하며 조작표 구조를 유지한다', () => {
     const exp = newExperiment(track, { ...DEFAULT_SETTINGS, populationSize: 40, brain: 'sequence' }, 'seq');
     expect(exp.world.brain).toBe('sequence');
     const first = runToEnd(exp);
@@ -104,10 +97,8 @@ describe('세대 진화', () => {
     expect(exp.world.cars.every((c) => c.hasMoved)).toBe(true);
     for (let g = 1; g < 15; g++) {
       nextGeneration(exp, null, exp.generation);
-      const champion = () => exp.world.cars.find((c) => c.champion)!;
-      const record = runToEnd(exp);
-      expect(champion().bestDistance / champion().goal).toBeCloseTo(exp.history[g - 1]!.winner.progress, 12);
-      expect(record.bestProgress).toBeGreaterThanOrEqual(exp.history[g - 1]!.bestProgress);
+      runToEnd(exp);
+      expect(exp.world.genomes.every((genes) => genes.length === 600)).toBe(true);
     }
     const last = exp.history.at(-1)!;
     expect(last.bestProgress).toBeGreaterThan(first.bestProgress * 2);

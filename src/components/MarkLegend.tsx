@@ -3,10 +3,6 @@ export function MarkLegend({ ghost }: { ghost: boolean }) {
   return (
     <div className="legend" data-testid="legend">
       <span>
-        <i className="lg-gold" />
-        금색 챔피언
-      </span>
-      <span>
         <i className="lg-select" />
         선택
       </span>

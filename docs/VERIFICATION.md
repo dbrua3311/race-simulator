@@ -1,9 +1,9 @@
 # 검증 결과
 
-원문 PART 19(필수 검증 조건)·PART 20(주의할 버그)을 실제 자동 테스트와 대응시킨 표. 모두 통과 상태다 (10단계 기준).
+현재 요구사항과 자동 테스트를 대응시킨 표. 2026-11-09 전체 단위144개, 브라우저 고유18개 항목을 확인했다. 브라우저 전체 실행의16개와 리소스·시연 경로 수정 후 재실행2개가 통과했다.
 
-- 단위 테스트: `npm test` (Vitest, `tests/`) — 130개
-- 브라우저 테스트: `npm run test:e2e` (Playwright + Chromium, `e2e/`) — 16개
+- 단위 테스트: `npm test` (Vitest, `tests/`) — 144개
+- 브라우저 테스트: `npm run test:e2e` (Playwright + Chromium, `e2e/`) — 18개 항목
 - 트랙 대량 검사: `TRACK_SEEDS=300 npm test` — 난이도마다 시드 300개 (트랙 크기 변경 후 기준)
 - GitHub Actions 가 PR 마다 lint · typecheck · 단위 테스트 · 빌드 · 브라우저 테스트를 모두 실행한다
 
@@ -20,7 +20,7 @@
 
 | 항목 | 확인한 테스트 |
 |---|---|
-| 동시 출발 | `world.test.ts` 같은 tick · `e2e/drive.spec.ts` 카운트다운 후 50대 |
+| 동시 출발 | `world.test.ts` 같은 tick · `e2e/drive.spec.ts` 카운트다운 후 기본20대 |
 | 차끼리 충돌·간섭 없음, 종료 차도 방해 없음 | `world.test.ts` "혼자 달려도 50대 속에서 달려도 똑같다" |
 | 벽 충돌 종료 | `collision.test.ts` · `world.test.ts` 종료 조건 |
 | 브레이크로 속도 0 → 종료, 출발 당시 0 은 아님 | `world.test.ts` 브레이크 정지 / 처음부터 제동 → 안전 종료 / 저절로 느려짐은 아님 |
@@ -34,8 +34,7 @@
 | 실제 교차·돌연변이 | `tests/genetics/operators.test.ts` 뉴런 단위 교차, 돌연변이 비율, 자손이 부모와 다름 |
 | 적합도는 실제 주행 결과 | `fitness.test.ts` · `experiment.test.ts` 평가 |
 | 미완주 차도 1등 | `fitness.test.ts` 35/82/64/91% 예시 |
-| 직전 1등 유전자 변형 없이 보존 | `operators.test.ts` 비트 단위 동일 · `experiment.test.ts` 챔피언이 직전 1등 기록을 정확히 재현 (4세대) |
-| 금색 챔피언 정확히 1대 | `experiment.test.ts` 1세대 0대, 이후 1대 |
+| 모든 자리 실제 자손 | `operators.test.ts`, `experiment.test.ts` 전체 계보·수동 제외·다음 세대 재현성 확인 |
 | 세대를 거듭하면 실제로 좋아진다 | `experiment.test.ts` 12세대 진화로 진행률 향상 (아래 학습 곡선 참고) |
 
 ## 58. 수동 모드
@@ -102,3 +101,5 @@
 ## 구현하지 않은 것
 
 - 원문 17절의 "선택한 자동차의 센서 방향·거리 표시"는 원문이 핵심 이후의 선택적 확장으로 둔 기능이라 구현하지 않았다.
+
+최신 신경망 주행 비교와 범위·한계는 [VALIDATION_CORNER.md](VALIDATION_CORNER.md)에 있다. 최고점 개체 원본을 자동 복사하는 자리는 없으며, 과거 학습 곡선을 현재 설정의 결과로 해석하지 않는다.

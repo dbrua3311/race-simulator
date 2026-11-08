@@ -5,7 +5,7 @@ import type { Experiment, GenerationRecord, Ghost } from '../simulation/experime
 import type { EndReason } from '../simulation/types';
 import type { Track } from '../tracks/types';
 
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 /** idle: 실험 없음 / ready: 출발 그리드에 정렬 / running / paused / evaluated: 세대 평가 끝, 부모 선택 대기 */
 export type SimStatus = 'idle' | 'ready' | 'running' | 'paused' | 'evaluated';
@@ -60,8 +60,6 @@ export interface Snapshot {
   ids: number[];
   /** 차마다 CAR_STRIDE 개 값 */
   data: Float32Array;
-  /** 금색 챔피언의 배열 위치 (없으면 -1) */
-  championIndex: number;
   counts: CarCounts;
   /** 유효 진행률 (0 ~ 1) 최고·평균 */
   bestProgress: number;

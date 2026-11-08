@@ -68,13 +68,14 @@ test('수동 진화: 클릭·드래그로 부모를 고르고 결정완료를 �
 
 test('자동 학습: 입력 없이 세대가 늘고, 정지하면 선택창 없이 일반 화면에서 상태가 보존된다', async ({ page }) => {
   await finishFirstGeneration(page);
+  await page.getByRole('button', { name: '50배속', exact: true }).click();
   await page.getByRole('button', { name: '자동 학습 시작' }).click();
-  await expect(page.getByText('자동 학습 중')).toBeVisible();
+  await expect(page.getByText('자동 학습 중', { exact: true })).toBeVisible();
   await expect.poll(async () => Number(await page.getByTestId('generation').textContent()), { timeout: 60000 }).toBeGreaterThanOrEqual(4);
   await page.screenshot({ path: 'test-results/auto-running.png' });
 
   await page.getByRole('button', { name: '자동 학습 정지' }).click();
-  await expect(page.getByText('자동 학습 중')).toHaveCount(0);
+  await expect(page.getByText('자동 학습 중', { exact: true })).toHaveCount(0);
   const generation = await page.getByTestId('generation').textContent();
   const phase = await page.getByTestId('phase').textContent();
   expect(['일시정지', '부모 선택', '주행 준비']).toContain(phase);
