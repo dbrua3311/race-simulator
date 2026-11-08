@@ -20,9 +20,9 @@ describe('기본 화면', () => {
     expect(screen.getByText('--:--.--')).toBeInTheDocument();
   });
 
-  it('기본 개체 수는 50대다', () => {
+  it('기본 개체 수는 20대다', () => {
     render(<App />);
-    expect(screen.getByText('50대')).toBeInTheDocument();
+    expect(screen.getByText('20대')).toBeInTheDocument();
   });
 
   it('Web Worker 가 없는 환경에서는 엔진 사용 불가로 표시한다', () => {

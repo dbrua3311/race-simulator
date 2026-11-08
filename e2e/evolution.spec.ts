@@ -19,7 +19,7 @@ test('수동 진화: 클릭·드래그로 부모를 고르고 결정완료를 �
   const canvas = page.getByTestId('track-canvas');
   const box = (await canvas.boundingBox())!;
   const positions = await cars(page);
-  expect(positions).toHaveLength(50);
+  expect(positions).toHaveLength(20);
 
   // 결정완료는 2대 이상 골라야 누를 수 있다
   const confirm = page.getByRole('button', { name: '결정완료' });
@@ -42,7 +42,7 @@ test('수동 진화: 클릭·드래그로 부모를 고르고 결정완료를 �
   await page.mouse.move(box.x + Math.max(...xs) + 5, box.y + Math.max(...ys) + 5, { steps: 8 });
   await page.screenshot({ path: 'test-results/evo-drag.png' });
   await page.mouse.up();
-  await expect(page.getByTestId('selection-count')).toHaveText('선택 50대');
+  await expect(page.getByTestId('selection-count')).toHaveText('선택 20대');
 
   // 클릭·드래그만으로는 다음 세대로 넘어가지 않는다
   await page.waitForTimeout(800);

@@ -34,7 +34,7 @@ export const BRAIN_LABEL: Record<Brain, string> = {
 };
 
 export const DEFAULT_SETTINGS: GaSettings = {
-  populationSize: 50,
+  populationSize: 20,
   crossoverRate: 0.8,
   mutationRate: 0.15,
   // 실험으로 정함 (DECISIONS D32): 0.5 / 3 은 챔피언 혼자 앞서고 자손 대부분이 망가졌다

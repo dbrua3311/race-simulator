@@ -10,10 +10,10 @@ async function startRun(page: Page, seed: string) {
   await page.getByRole('button', { name: '주행 시작' }).click();
 }
 
-test('카운트다운 뒤 50대가 동시에 출발하고, 일시정지·재개·건너뛰기가 동작한다', async ({ page }) => {
+test('카운트다운 뒤 20대가 동시에 출발하고, 일시정지·재개·건너뛰기가 동작한다', async ({ page }) => {
   await startRun(page, 'DRIVE1');
   await expect(page.getByTestId('countdown')).toHaveText('3');
-  await expect(page.getByTestId('stat-주행 중')).toHaveText('50대');
+  await expect(page.getByTestId('stat-주행 중')).toHaveText('20대');
   await expect(page.getByTestId('finish-record')).toHaveText('--:--.--');
   await page.screenshot({ path: 'test-results/drive-grid.png' });
 

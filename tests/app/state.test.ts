@@ -11,12 +11,12 @@ function running(): AppState {
 }
 
 describe('화면 상태 — 트랙 생성과 고정', () => {
-  it('처음에는 주어진 시드로 트랙을 만들고, 기본 개체 수는 50대', () => {
+  it('처음에는 주어진 시드로 트랙을 만들고, 기본 개체 수는 20대', () => {
     const s = initialState('ABC', 'easy');
     expect(s.track?.seed).toBe('ABC');
     expect(s.track?.difficulty).toBe('easy');
     expect(s.trackLocked).toBe(false);
-    expect(s.settings.populationSize).toBe(50);
+    expect(s.settings.populationSize).toBe(20);
   });
 
   it('난이도를 바꾸면 같은 시드로 다시 만든다', () => {
